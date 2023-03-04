@@ -11,8 +11,12 @@ mod tests {
 
         let mut memory = FlatMemory::new();
 
-        assert_eq!(memory.read_byte(0x0000), 0);
         memory.write_byte(0x0000, 64);
         assert_eq!(memory.read_byte(0x0000), 64);
+
+        memory.write_word(0x0100, 0xAABB);
+        assert_eq!(memory.read_word(0x0100), 0xAABB);
+        assert_eq!(memory.read_byte(0x0100), 0xBB);
+        assert_eq!(memory.read_byte(0x0101), 0xAA);
     }
 }
