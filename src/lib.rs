@@ -1,4 +1,5 @@
 pub mod bus;
+pub mod cpu;
 mod flat_memory;
 
 #[cfg(test)]
