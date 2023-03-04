@@ -23,13 +23,17 @@ pub struct CPU {
 impl CPU {
     const RESET_VECTOR: u16 = 0xFFFA;
 
+    // The 6502 uses a descending stack.
+    const STACK_BOTTOM: u16 = 0x01FF;
+    const STACK_TOP: u16 = 0x0100;
+
     pub fn new() -> Self {
         Self {
             a: 0,
             x: 0,
             y: 0,
             pc: 0,
-            s: 0, // TODO: determine where the stack pointer should be initialized
+            s: 0,
             carry: false,
             zero: false,
             irq_disable: false,
@@ -44,6 +48,7 @@ impl CPU {
     pub fn clock(&mut self, bus: &mut dyn Bus16) {
         if self.should_run_reset_procedure {
             self.pc = bus.read_word(Self::RESET_VECTOR);
+            self.s = 0xFF;
             return;
         }
 
