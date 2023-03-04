@@ -47,8 +47,7 @@ impl CPU {
 
     pub fn clock(&mut self, bus: &mut dyn Bus16) {
         if self.should_run_reset_procedure {
-            self.pc = bus.read_word(Self::RESET_VECTOR);
-            self.s = 0xFF;
+            self.reset(bus);
             return;
         }
 
@@ -57,5 +56,10 @@ impl CPU {
         match opcode {
             _ => panic!("Unimplemented opcode"),
         }
+    }
+
+    pub fn reset(&mut self, bus: &mut dyn Bus16) {
+        self.pc = bus.read_word(Self::RESET_VECTOR);
+        self.s = 0xFF;
     }
 }
