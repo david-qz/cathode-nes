@@ -1,5 +1,6 @@
 use crate::bus::Bus16;
 
+#[derive(Copy, Clone)]
 enum AddressingMode {
     Accumulator,
     Immediate,
@@ -66,8 +67,228 @@ impl CPU {
         self.s = 0xFF;
     }
 
-    fn resolve_address(&mut self, bus: &mut dyn Bus16, addressing_mode: &AddressingMode) -> u16 {
-        match addressing_mode {
+    pub fn clock(&mut self, bus: &mut dyn Bus16) {
+        if self.should_run_reset_procedure {
+            self.reset(bus);
+            return;
+        }
+
+        let opcode = bus.read_byte(self.pc);
+
+        match opcode {
+            // ADC
+            0x69 => self.adc(bus, AddressingMode::Immediate, 2, 2),
+            0x6D => self.adc(bus, AddressingMode::Absolute, 3, 4),
+            0x65 => self.adc(bus, AddressingMode::ZeroPage, 3, 3),
+            0x61 => self.adc(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0x71 => self.adc(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x75 => self.adc(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0x7D => self.adc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0x79 => self.adc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // AND
+            0x29 => self.and(bus, AddressingMode::Immediate, 2, 2),
+            0x2D => self.and(bus, AddressingMode::Absolute, 3, 4),
+            0x25 => self.and(bus, AddressingMode::ZeroPage, 3, 3),
+            0x21 => self.and(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0x31 => self.and(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x35 => self.and(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0x3D => self.and(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0x39 => self.and(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // ASL
+            0x0E => self.asl(bus, AddressingMode::Absolute, 3, 4),
+            0x06 => self.asl(bus, AddressingMode::ZeroPage, 3, 3),
+            0x0A => self.asl(bus, AddressingMode::Accumulator, 1, 2),
+            0x16 => self.asl(bus, AddressingMode::IndexedZeroPageX, 2, 6),
+            0x1E => self.asl(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            // BCC
+            0x90 => self.bcc(bus, AddressingMode::Relative, 2, 2),
+            // BCS
+            0xB0 => self.bcs(bus, AddressingMode::Relative, 2, 2),
+            // BEQ
+            0xF0 => self.beq(bus, AddressingMode::Relative, 2, 2),
+            // BIT
+            0x2C => self.bit(bus, AddressingMode::Absolute, 3, 4),
+            0x24 => self.bit(bus, AddressingMode::ZeroPage, 3, 3),
+            // BMI
+            0x30 => self.bmi(bus, AddressingMode::Relative, 2, 2),
+            // BNE
+            0xD0 => self.bne(bus, AddressingMode::Relative, 2, 2),
+            // BPL
+            0x10 => self.bpl(bus, AddressingMode::Relative, 2, 2),
+            // BRK
+            0x00 => self.brk(bus, AddressingMode::Implied, 1, 7),
+            // BVC
+            0x50 => self.bvc(bus, AddressingMode::Relative, 2, 2),
+            // BVS
+            0x70 => self.bvs(bus, AddressingMode::Relative, 2, 2),
+            // CLC
+            0x18 => self.clc(bus, AddressingMode::Implied, 1, 2),
+            // CLD
+            0xD8 => self.cld(bus, AddressingMode::Implied, 1, 2),
+            // CLI
+            0x58 => self.cli(bus, AddressingMode::Implied, 1, 2),
+            // CLV
+            0xB8 => self.clv(bus, AddressingMode::Implied, 1, 2),
+            //CMP
+            0xC9 => self.cmp(bus, AddressingMode::Immediate, 2, 2),
+            0xCD => self.cmp(bus, AddressingMode::Absolute, 3, 4),
+            0xC5 => self.cmp(bus, AddressingMode::ZeroPage, 3, 3),
+            0xC1 => self.cmp(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0xD1 => self.cmp(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0xD5 => self.cmp(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0xDD => self.cmp(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0xD9 => self.cmp(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // CPX
+            0xE0 => self.cpx(bus, AddressingMode::Immediate, 2, 2),
+            0xEC => self.cpx(bus, AddressingMode::Absolute, 3, 4),
+            0xE4 => self.cpx(bus, AddressingMode::ZeroPage, 3, 3),
+            // CPY
+            0xC0 => self.cpy(bus, AddressingMode::Immediate, 2, 2),
+            0xCC => self.cpy(bus, AddressingMode::Absolute, 3, 4),
+            0xC4 => self.cpy(bus, AddressingMode::ZeroPage, 3, 3),
+            // DEC
+            0xCE => self.dec(bus, AddressingMode::Absolute, 3, 6),
+            0xC6 => self.dec(bus, AddressingMode::ZeroPage, 3, 5),
+            0xD6 => self.dec(bus, AddressingMode::IndexedZeroPageX, 2, 6),
+            0xDE => self.dec(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            // DEX
+            0xCA => self.dex(bus, AddressingMode::Implied, 1, 2),
+            // DEY
+            0x88 => self.dey(bus, AddressingMode::Implied, 1, 2),
+            // EOR
+            0x49 => self.eor(bus, AddressingMode::Immediate, 2, 2),
+            0x4D => self.eor(bus, AddressingMode::Absolute, 3, 4),
+            0x45 => self.eor(bus, AddressingMode::ZeroPage, 3, 3),
+            0x41 => self.eor(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0x51 => self.eor(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x55 => self.eor(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0x5D => self.eor(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0x59 => self.eor(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // INC
+            0xEE => self.inc(bus, AddressingMode::Absolute, 3, 6),
+            0xE6 => self.inc(bus, AddressingMode::ZeroPage, 3, 5),
+            0xF6 => self.inc(bus, AddressingMode::IndexedZeroPageX, 2, 6),
+            0xFE => self.inc(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            // INX
+            0xE8 => self.inx(bus, AddressingMode::Implied, 1, 2),
+            // INY
+            0xC8 => self.iny(bus, AddressingMode::Implied, 1, 2),
+            // JMP
+            0x4C => self.jmp(bus, AddressingMode::ZeroPage, 3, 3),
+            0x6C => self.jmp(bus, AddressingMode::AbsoluteIndirect, 3, 5),
+            // JSR
+            0x20 => self.jsr(bus, AddressingMode::Absolute, 3, 6),
+            // LDA
+            0xA9 => self.lda(bus, AddressingMode::Immediate, 2, 2),
+            0xAD => self.lda(bus, AddressingMode::Absolute, 3, 4),
+            0xA5 => self.lda(bus, AddressingMode::ZeroPage, 3, 3),
+            0xA1 => self.lda(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0xB1 => self.lda(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0xB5 => self.lda(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0xBD => self.lda(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0xB9 => self.lda(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // LDX
+            0xA2 => self.ldx(bus, AddressingMode::Immediate, 2, 2),
+            0xAE => self.ldx(bus, AddressingMode::Absolute, 3, 4),
+            0xA6 => self.ldx(bus, AddressingMode::ZeroPage, 3, 3),
+            0xBE => self.ldx(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0xB6 => self.ldx(bus, AddressingMode::IndexedZeroPageY, 2, 4),
+            // LDY
+            0xA0 => self.ldy(bus, AddressingMode::Immediate, 2, 2),
+            0xAC => self.ldy(bus, AddressingMode::Absolute, 3, 4),
+            0xA4 => self.ldy(bus, AddressingMode::ZeroPage, 3, 3),
+            0xB4 => self.ldy(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0xBC => self.ldy(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            // LSR
+            0x4E => self.lsr(bus, AddressingMode::Absolute, 3, 6),
+            0x46 => self.lsr(bus, AddressingMode::ZeroPage, 3, 5),
+            0x4A => self.lsr(bus, AddressingMode::Accumulator, 1, 2),
+            0x56 => self.lsr(bus, AddressingMode::IndexedZeroPageX, 2, 6),
+            0x5E => self.lsr(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            // NOP
+            0xEA => self.nop(bus, AddressingMode::Implied, 1, 2),
+            // ORA
+            0x09 => self.ora(bus, AddressingMode::Immediate, 2, 2),
+            0x0D => self.ora(bus, AddressingMode::Absolute, 3, 4),
+            0x05 => self.ora(bus, AddressingMode::ZeroPage, 3, 3),
+            0x01 => self.ora(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0x11 => self.ora(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x15 => self.ora(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0x1D => self.ora(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0x19 => self.ora(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // PHA
+            0x48 => self.pha(bus, AddressingMode::Implied, 1, 3),
+            // PHP
+            0x08 => self.php(bus, AddressingMode::Implied, 1, 3),
+            // PLA
+            0x68 => self.pla(bus, AddressingMode::Implied, 1, 4),
+            // PLP
+            0x28 => self.plp(bus, AddressingMode::Implied, 1, 4),
+            // ROL
+            0x2E => self.rol(bus, AddressingMode::Absolute, 3, 6),
+            0x26 => self.rol(bus, AddressingMode::ZeroPage, 3, 5),
+            0x2A => self.rol(bus, AddressingMode::Accumulator, 1, 2),
+            0x36 => self.rol(bus, AddressingMode::IndexedZeroPageX, 2, 6),
+            0x3E => self.rol(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            // ROR
+            0x6E => self.ror(bus, AddressingMode::Absolute, 3, 6),
+            0x66 => self.ror(bus, AddressingMode::ZeroPage, 3, 5),
+            0x6A => self.ror(bus, AddressingMode::Accumulator, 1, 2),
+            0x76 => self.ror(bus, AddressingMode::IndexedZeroPageX, 2, 6),
+            0x7E => self.ror(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            // RTI
+            0x40 => self.rti(bus, AddressingMode::Implied, 1, 6),
+            // RTS
+            0x60 => self.rts(bus, AddressingMode::Implied, 1, 6),
+            // SBC
+            0xE9 => self.sbc(bus, AddressingMode::Immediate, 2, 2),
+            0xED => self.sbc(bus, AddressingMode::Absolute, 3, 4),
+            0xE5 => self.sbc(bus, AddressingMode::ZeroPage, 3, 3),
+            0xE1 => self.sbc(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0xF1 => self.sbc(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0xF5 => self.sbc(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0xFD => self.sbc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0xF9 => self.sbc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            // SEC
+            0x38 => self.sec(bus, AddressingMode::Implied, 1, 2),
+            // SED
+            0xF8 => self.sed(bus, AddressingMode::Implied, 1, 2),
+            // SEI
+            0x78 => self.sei(bus, AddressingMode::Implied, 1, 2),
+            // STA
+            0x8D => self.sta(bus, AddressingMode::Absolute, 3, 4),
+            0x85 => self.sta(bus, AddressingMode::ZeroPage, 3, 3),
+            0x81 => self.sta(bus, AddressingMode::IndexedIndirectX, 2, 6),
+            0x91 => self.sta(bus, AddressingMode::IndexedIndirectY, 2, 6),
+            0x95 => self.sta(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0x9D => self.sta(bus, AddressingMode::IndexedAbsoluteX, 3, 5),
+            0x99 => self.sta(bus, AddressingMode::IndexedAbsoluteY, 3, 5),
+            // STX
+            0x8E => self.stx(bus, AddressingMode::Absolute, 3, 4),
+            0x86 => self.stx(bus, AddressingMode::ZeroPage, 3, 3),
+            0x96 => self.stx(bus, AddressingMode::IndexedZeroPageY, 2, 4),
+            // STY
+            0x8C => self.sty(bus, AddressingMode::Absolute, 3, 4),
+            0x84 => self.sty(bus, AddressingMode::ZeroPage, 3, 3),
+            0x94 => self.sty(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            // TAX
+            0xAA => self.tax(bus, AddressingMode::Implied, 1, 2),
+            // TAY
+            0xA8 => self.tay(bus, AddressingMode::Implied, 1, 2),
+            // TSX
+            0xBA => self.tsx(bus, AddressingMode::Implied, 1, 2),
+            // TXA
+            0x8A => self.txa(bus, AddressingMode::Implied, 1, 2),
+            // TXS
+            0x9A => self.txs(bus, AddressingMode::Implied, 1, 2),
+            // TYA
+            0x98 => self.tya(bus, AddressingMode::Implied, 1, 2),
+            _ => panic!("Unknown opcode: {}", opcode),
+        }
+    }
+
+    fn resolve_address(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
+        match addr_mode {
             AddressingMode::Immediate => self.pc + 1,
             AddressingMode::Absolute => bus.read_word(self.pc + 1),
             AddressingMode::ZeroPage => bus.read_byte(self.pc + 1) as u16,
@@ -114,461 +335,227 @@ impl CPU {
         }
     }
 
-    fn instruction_length(addressing_mode: &AddressingMode) -> u16 {
-        match addressing_mode {
-            AddressingMode::Immediate => 2,
-            AddressingMode::Absolute => 3,
-            AddressingMode::ZeroPage => 2,
-            AddressingMode::Accumulator => 1,
-            AddressingMode::IndexedZeroPageX => 2,
-            AddressingMode::IndexedZeroPageY => 2,
-            AddressingMode::IndexedIndirectX => 2,
-            AddressingMode::IndexedIndirectY => 2,
-            AddressingMode::IndexedAbsoluteX => 3,
-            AddressingMode::IndexedAbsoluteY => 3,
-            AddressingMode::AbsoluteIndirect => 3,
-            AddressingMode::Relative => 2,
-            AddressingMode::Implied => 1,
-        }
-    }
-
-    pub fn clock(&mut self, bus: &mut dyn Bus16) {
-        if self.should_run_reset_procedure {
-            self.reset(bus);
-            return;
-        }
-
-        let opcode = bus.read_byte(self.pc);
-
-        match opcode {
-            // ADC
-            0x69 => self.adc(bus, AddressingMode::Immediate),
-            0x6D => self.adc(bus, AddressingMode::Absolute),
-            0x65 => self.adc(bus, AddressingMode::ZeroPage),
-            0x61 => self.adc(bus, AddressingMode::IndexedIndirectX),
-            0x71 => self.adc(bus, AddressingMode::IndexedIndirectY),
-            0x75 => self.adc(bus, AddressingMode::IndexedZeroPageX),
-            0x7D => self.adc(bus, AddressingMode::IndexedAbsoluteX),
-            0x79 => self.adc(bus, AddressingMode::IndexedAbsoluteY),
-            // AND
-            0x29 => self.and(bus, AddressingMode::Immediate),
-            0x2D => self.and(bus, AddressingMode::Absolute),
-            0x25 => self.and(bus, AddressingMode::ZeroPage),
-            0x21 => self.and(bus, AddressingMode::IndexedIndirectX),
-            0x31 => self.and(bus, AddressingMode::IndexedIndirectY),
-            0x35 => self.and(bus, AddressingMode::IndexedZeroPageX),
-            0x3D => self.and(bus, AddressingMode::IndexedAbsoluteX),
-            0x39 => self.and(bus, AddressingMode::IndexedAbsoluteY),
-            // ASL
-            0x0E => self.asl(bus, AddressingMode::Absolute),
-            0x06 => self.asl(bus, AddressingMode::ZeroPage),
-            0x0A => self.asl(bus, AddressingMode::Accumulator),
-            0x16 => self.asl(bus, AddressingMode::IndexedZeroPageX),
-            0x1E => self.asl(bus, AddressingMode::IndexedAbsoluteX),
-            // BCC
-            0x90 => self.bcc(),
-            // BCS
-            0xB0 => self.bcs(),
-            // BEQ
-            0xF0 => self.beq(),
-            // BIT
-            0x2C => self.bit(bus, AddressingMode::Absolute),
-            0x24 => self.bit(bus, AddressingMode::ZeroPage),
-            // BMI
-            0x30 => self.bmi(),
-            // BNE
-            0xD0 => self.bne(),
-            // BPL
-            0x10 => self.bpl(),
-            // BRK
-            0x00 => self.brk(),
-            // BVC
-            0x50 => self.bvc(),
-            // BVS
-            0x70 => self.bvs(),
-            // CLC
-            0x18 => self.clc(),
-            // CLD
-            0xD8 => self.cld(),
-            // CLI
-            0x58 => self.cli(),
-            // CLV
-            0xB8 => self.clv(),
-            //CMP
-            0xC9 => self.cmp(bus, AddressingMode::Immediate),
-            0xCD => self.cmp(bus, AddressingMode::Absolute),
-            0xC5 => self.cmp(bus, AddressingMode::ZeroPage),
-            0xC1 => self.cmp(bus, AddressingMode::IndexedIndirectX),
-            0xD1 => self.cmp(bus, AddressingMode::IndexedIndirectY),
-            0xD5 => self.cmp(bus, AddressingMode::IndexedZeroPageX),
-            0xDD => self.cmp(bus, AddressingMode::IndexedAbsoluteX),
-            0xD9 => self.cmp(bus, AddressingMode::IndexedAbsoluteY),
-            // CPX
-            0xE0 => self.cpx(bus, AddressingMode::Immediate),
-            0xEC => self.cpx(bus, AddressingMode::Absolute),
-            0xE4 => self.cpx(bus, AddressingMode::ZeroPage),
-            // CPY
-            0xC0 => self.cpy(bus, AddressingMode::Immediate),
-            0xCC => self.cpy(bus, AddressingMode::Absolute),
-            0xC4 => self.cpy(bus, AddressingMode::ZeroPage),
-            // DEC
-            0xCE => self.dec(bus, AddressingMode::Absolute),
-            0xC6 => self.dec(bus, AddressingMode::ZeroPage),
-            0xD6 => self.dec(bus, AddressingMode::IndexedZeroPageX),
-            0xDE => self.dec(bus, AddressingMode::IndexedAbsoluteX),
-            // DEX
-            0xCA => self.dex(),
-            // DEY
-            0x88 => self.dey(),
-            // EOR
-            0x49 => self.eor(bus, AddressingMode::Immediate),
-            0x4D => self.eor(bus, AddressingMode::Absolute),
-            0x45 => self.eor(bus, AddressingMode::ZeroPage),
-            0x41 => self.eor(bus, AddressingMode::IndexedIndirectX),
-            0x51 => self.eor(bus, AddressingMode::IndexedIndirectY),
-            0x55 => self.eor(bus, AddressingMode::IndexedZeroPageX),
-            0x5D => self.eor(bus, AddressingMode::IndexedAbsoluteX),
-            0x59 => self.eor(bus, AddressingMode::IndexedAbsoluteY),
-            // INC
-            0xEE => self.inc(bus, AddressingMode::Absolute),
-            0xE6 => self.inc(bus, AddressingMode::ZeroPage),
-            0xF6 => self.inc(bus, AddressingMode::IndexedZeroPageX),
-            0xFE => self.inc(bus, AddressingMode::IndexedAbsoluteX),
-            // INX
-            0xE8 => self.inx(),
-            // INY
-            0xC8 => self.iny(),
-            // JMP
-            0x4C => self.jmp(bus, AddressingMode::ZeroPage),
-            0x6C => self.jmp(bus, AddressingMode::AbsoluteIndirect),
-            // JSR
-            0x20 => self.jsr(),
-            // LDA
-            0xA9 => self.lda(bus, AddressingMode::Immediate),
-            0xAD => self.lda(bus, AddressingMode::Absolute),
-            0xA5 => self.lda(bus, AddressingMode::ZeroPage),
-            0xA1 => self.lda(bus, AddressingMode::IndexedIndirectX),
-            0xB1 => self.lda(bus, AddressingMode::IndexedIndirectY),
-            0xB5 => self.lda(bus, AddressingMode::IndexedZeroPageX),
-            0xBD => self.lda(bus, AddressingMode::IndexedAbsoluteX),
-            0xB9 => self.lda(bus, AddressingMode::IndexedAbsoluteY),
-            // LDX
-            0xA2 => self.ldx(bus, AddressingMode::Immediate),
-            0xAE => self.ldx(bus, AddressingMode::Absolute),
-            0xA6 => self.ldx(bus, AddressingMode::ZeroPage),
-            0xBE => self.ldx(bus, AddressingMode::IndexedAbsoluteY),
-            0xB6 => self.ldx(bus, AddressingMode::IndexedZeroPageY),
-            // LDY
-            0xA0 => self.ldy(bus, AddressingMode::Immediate),
-            0xAC => self.ldy(bus, AddressingMode::Absolute),
-            0xA4 => self.ldy(bus, AddressingMode::ZeroPage),
-            0xB4 => self.ldy(bus, AddressingMode::IndexedZeroPageX),
-            0xBC => self.ldy(bus, AddressingMode::IndexedAbsoluteX),
-            // LSR
-            0x4E => self.lsr(bus, AddressingMode::Absolute),
-            0x46 => self.lsr(bus, AddressingMode::ZeroPage),
-            0x4A => self.lsr(bus, AddressingMode::Accumulator),
-            0x56 => self.lsr(bus, AddressingMode::IndexedZeroPageX),
-            0x5E => self.lsr(bus, AddressingMode::IndexedAbsoluteX),
-            // NOP
-            0xEA => (),
-            // ORA
-            0x09 => self.ora(bus, AddressingMode::Immediate),
-            0x0D => self.ora(bus, AddressingMode::Absolute),
-            0x05 => self.ora(bus, AddressingMode::ZeroPage),
-            0x01 => self.ora(bus, AddressingMode::IndexedIndirectX),
-            0x11 => self.ora(bus, AddressingMode::IndexedIndirectY),
-            0x15 => self.ora(bus, AddressingMode::IndexedZeroPageX),
-            0x1D => self.ora(bus, AddressingMode::IndexedAbsoluteX),
-            0x19 => self.ora(bus, AddressingMode::IndexedAbsoluteY),
-            // PHA
-            0x48 => self.pha(),
-            // PHP
-            0x08 => self.php(),
-            // PLA
-            0x68 => self.pla(),
-            // PLP
-            0x28 => self.plp(),
-            // ROL
-            0x2E => self.rol(bus, AddressingMode::Absolute),
-            0x26 => self.rol(bus, AddressingMode::ZeroPage),
-            0x2A => self.rol(bus, AddressingMode::Accumulator),
-            0x36 => self.rol(bus, AddressingMode::IndexedZeroPageX),
-            0x3E => self.rol(bus, AddressingMode::IndexedAbsoluteX),
-            // ROR
-            0x6E => self.ror(bus, AddressingMode::Absolute),
-            0x66 => self.ror(bus, AddressingMode::ZeroPage),
-            0x6A => self.ror(bus, AddressingMode::Accumulator),
-            0x76 => self.ror(bus, AddressingMode::IndexedZeroPageX),
-            0x7E => self.ror(bus, AddressingMode::IndexedAbsoluteX),
-            // RTI
-            0x40 => self.rti(),
-            // RTS
-            0x60 => self.rts(),
-            // SBC
-            0xE9 => self.sbc(bus, AddressingMode::Immediate),
-            0xED => self.sbc(bus, AddressingMode::Absolute),
-            0xE5 => self.sbc(bus, AddressingMode::ZeroPage),
-            0xE1 => self.sbc(bus, AddressingMode::IndexedIndirectX),
-            0xF1 => self.sbc(bus, AddressingMode::IndexedIndirectY),
-            0xF5 => self.sbc(bus, AddressingMode::IndexedZeroPageX),
-            0xFD => self.sbc(bus, AddressingMode::IndexedAbsoluteX),
-            0xF9 => self.sbc(bus, AddressingMode::IndexedAbsoluteY),
-            // SEC
-            0x38 => self.sec(),
-            // SED
-            0xF8 => self.sed(),
-            // SEI
-            0x78 => self.sei(),
-            // STA
-            0x8D => self.sta(bus, AddressingMode::Absolute),
-            0x85 => self.sta(bus, AddressingMode::ZeroPage),
-            0x81 => self.sta(bus, AddressingMode::IndexedIndirectX),
-            0x91 => self.sta(bus, AddressingMode::IndexedIndirectY),
-            0x95 => self.sta(bus, AddressingMode::IndexedZeroPageX),
-            0x9D => self.sta(bus, AddressingMode::IndexedAbsoluteX),
-            0x99 => self.sta(bus, AddressingMode::IndexedAbsoluteY),
-            // STX
-            0x8E => self.stx(bus, AddressingMode::Absolute),
-            0x86 => self.stx(bus, AddressingMode::ZeroPage),
-            0x96 => self.stx(bus, AddressingMode::IndexedZeroPageY),
-            // STY
-            0x8C => self.sty(bus, AddressingMode::Absolute),
-            0x84 => self.sty(bus, AddressingMode::ZeroPage),
-            0x94 => self.sty(bus, AddressingMode::IndexedZeroPageX),
-            // TAX
-            0xAA => self.tax(),
-            // TAY
-            0xA8 => self.tay(),
-            // TSX
-            0xBA => self.tsx(),
-            // TXA
-            0x8A => self.txa(),
-            // TXS
-            0x9A => self.txs(),
-            // TYA
-            0x98 => self.tya(),
-            _ => panic!("Unknown opcode: {}", opcode),
-        }
-    }
-
-    fn adc(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn adc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'ADC'");
     }
 
-    fn and(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn and(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'AND'");
     }
 
-    fn asl(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn asl(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'AND'");
     }
 
-    fn bcc(&mut self) {
+    fn bcc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BCC'");
     }
 
-    fn bcs(&mut self) {
+    fn bcs(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BCS'");
     }
 
-    fn beq(&mut self) {
+    fn beq(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BCS'");
     }
 
-    fn bit(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn bit(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BIT'");
     }
 
-    fn bmi(&mut self) {
+    fn bmi(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BMI'");
     }
 
-    fn bne(&mut self) {
+    fn bne(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BNE'");
     }
 
-    fn bpl(&mut self) {
+    fn bpl(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BPL'");
     }
 
-    fn brk(&mut self) {
+    fn brk(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BRK'");
     }
 
-    fn bvc(&mut self) {
+    fn bvc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BVC'");
     }
 
-    fn bvs(&mut self) {
+    fn bvs(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BVS'");
     }
 
-    fn clc(&mut self) {
+    fn clc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CLC'");
     }
 
-    fn cld(&mut self) {
+    fn cld(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CLD'");
     }
 
-    fn cli(&mut self) {
+    fn cli(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CLI'");
     }
 
-    fn clv(&mut self) {
+    fn clv(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CLV'");
     }
 
-    fn cmp(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn cmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CMP'");
     }
 
-    fn cpx(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn cpx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CPX'");
     }
 
-    fn cpy(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn cpy(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'CPY'");
     }
 
-    fn dec(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn dec(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'DEC'");
     }
 
-    fn dex(&mut self) {
+    fn dex(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'DEX'");
     }
 
-    fn dey(&mut self) {
+    fn dey(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'DEY'");
     }
 
-    fn eor(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn eor(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'EOR'");
     }
 
-    fn inc(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn inc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'INC'");
     }
 
-    fn inx(&mut self) {
+    fn inx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'INX'");
     }
 
-    fn iny(&mut self) {
+    fn iny(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'INY'");
     }
 
-    fn jmp(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn jmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'JMP'");
     }
 
-    fn jsr(&mut self) {
+    fn jsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'JSR'");
     }
 
-    fn lda(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn lda(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'LDA'");
     }
 
-    fn ldx(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn ldx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'LDX'");
     }
 
-    fn ldy(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn ldy(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'LDY'");
     }
 
-    fn lsr(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn lsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'LSR'");
     }
 
-    fn ora(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn nop(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+        panic!("Unimplemented opcode 'NOP'");
+    }
+
+    fn ora(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'ORA'");
     }
 
-    fn pha(&mut self) {
+    fn pha(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'PHA'");
     }
 
-    fn php(&mut self) {
+    fn php(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'PHP'");
     }
 
-    fn pla(&mut self) {
+    fn pla(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'PLA'");
     }
 
-    fn plp(&mut self) {
+    fn plp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'PLP'");
     }
 
-    fn rol(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn rol(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'ROL'");
     }
 
-    fn ror(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn ror(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'ROR'");
     }
 
-    fn rti(&mut self) {
+    fn rti(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'RTI'");
     }
 
-    fn rts(&mut self) {
+    fn rts(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'RTS'");
     }
 
-    fn sbc(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn sbc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'SBC'");
     }
 
-    fn sec(&mut self) {
+    fn sec(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'SEC'");
     }
 
-    fn sed(&mut self) {
+    fn sed(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'SED'");
     }
 
-    fn sei(&mut self) {
+    fn sei(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'SEI'");
     }
 
-    fn sta(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn sta(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'STA'");
     }
 
-    fn stx(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn stx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'STX'");
     }
 
-    fn sty(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) {
+    fn sty(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'STY'");
     }
 
-    fn tax(&mut self) {
+    fn tax(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TAX'");
     }
 
-    fn tay(&mut self) {
+    fn tay(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TAY'");
     }
 
-    fn tsx(&mut self) {
+    fn tsx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TSX'");
     }
 
-    fn txa(&mut self) {
+    fn txa(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TXA'");
     }
 
-    fn txs(&mut self) {
+    fn txs(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TXS'");
     }
 
-    fn tya(&mut self) {
+    fn tya(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TYA'");
     }
 }
