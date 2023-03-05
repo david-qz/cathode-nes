@@ -458,7 +458,12 @@ impl CPU {
     }
 
     fn lda(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'LDA'");
+        let address = self.resolve_address(bus, addr_mode);
+        self.a = bus.read_byte(address);
+        self.set_nz_flags(self.a);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn ldx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
@@ -530,7 +535,11 @@ impl CPU {
     }
 
     fn sta(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'STA'");
+        let address = self.resolve_address(bus, addr_mode);
+        bus.write_byte(address, self.a);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn stx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
@@ -563,5 +572,13 @@ impl CPU {
 
     fn tya(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'TYA'");
+    }
+
+    fn set_nz_flags(&mut self, value: u8) {
+        if value == 0 {
+            self.zero = true;
+        } else if value & (1 << 7) != 0 {
+            self.negative = true;
+        }
     }
 }
