@@ -39,7 +39,7 @@ pub struct CPU {
 }
 
 impl CPU {
-    const RESET_VECTOR: u16 = 0xFFFA;
+    pub const RESET_VECTOR: u16 = 0xFFFA;
 
     // The 6502 uses a descending stack.
     const STACK_BOTTOM: u16 = 0x01FF;
