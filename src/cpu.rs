@@ -114,6 +114,24 @@ impl CPU {
         }
     }
 
+    fn instruction_length(addressing_mode: &AddressingMode) -> u16 {
+        match addressing_mode {
+            AddressingMode::Immediate => 2,
+            AddressingMode::Absolute => 3,
+            AddressingMode::ZeroPage => 2,
+            AddressingMode::Accumulator => 1,
+            AddressingMode::IndexedZeroPageX => 2,
+            AddressingMode::IndexedZeroPageY => 2,
+            AddressingMode::IndexedIndirectX => 2,
+            AddressingMode::IndexedIndirectY => 2,
+            AddressingMode::IndexedAbsoluteX => 3,
+            AddressingMode::IndexedAbsoluteY => 3,
+            AddressingMode::AbsoluteIndirect => 3,
+            AddressingMode::Relative => 2,
+            AddressingMode::Implied => 1,
+        }
+    }
+
     pub fn clock(&mut self, bus: &mut dyn Bus16) {
         if self.should_run_reset_procedure {
             self.reset(bus);
