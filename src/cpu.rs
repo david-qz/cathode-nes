@@ -342,7 +342,28 @@ impl CPU {
     }
 
     fn adc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'ADC'");
+        if self.decimal_mode {
+            panic!("ADC: decimal mode not yet implemented!");
+        }
+
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+
+        let rhs = self.a;
+        let lhs = value;
+        let carry_in: u8 = unsafe { std::mem::transmute(self.carry) };
+
+        let wide_sum = (self.a as u16) + (value as u16) + (carry_in as u16);
+        let sum = (wide_sum & 0xFF) as u8;
+
+        self.carry = wide_sum > 0xFF;
+        self.overflow = ((sum ^ rhs) & (sum ^ lhs) & (1 << 7)) != 0;
+        self.set_nz_flags(sum);
+
+        self.a = sum;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn and(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
