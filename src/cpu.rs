@@ -12,6 +12,8 @@ enum AddressingMode {
     IndexedIndirectX,
     IndexedIndirectY,
     AbsoluteIndirect,
+    Relative,
+    Implied,
 }
 
 /// A MOS 6502 CPU
@@ -64,7 +66,7 @@ impl CPU {
         self.s = 0xFF;
     }
 
-    fn resolve_address(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) -> u16 {
+    fn resolve_address(&mut self, bus: &mut dyn Bus16, addressing_mode: &AddressingMode) -> u16 {
         match addressing_mode {
             AddressingMode::Immediate => self.pc + 1,
             AddressingMode::Absolute => bus.read_word(self.pc + 1),
@@ -99,8 +101,15 @@ impl CPU {
                 let indirect_address = bus.read_word(self.pc + 1);
                 bus.read_word(indirect_address)
             }
+            AddressingMode::Relative => {
+                let offset: i8 = unsafe { std::mem::transmute(bus.read_byte(self.pc + 1)) };
+                self.pc.wrapping_add_signed(offset as i16)
+            }
             AddressingMode::Accumulator => {
-                panic!("Attempt to resolve address of accumulator register!",)
+                panic!("Attempt to resolve address of accumulator register!")
+            }
+            AddressingMode::Implied => {
+                panic!("Attempt to resolve address in implied addressing mode!")
             }
         }
     }
