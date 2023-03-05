@@ -34,7 +34,8 @@ pub struct CPU {
     overflow: bool,
     negative: bool,
 
-    should_run_reset_procedure: bool,
+    total_cycles: u64,
+    initialized: bool,
 }
 
 impl CPU {
@@ -58,23 +59,26 @@ impl CPU {
             brk_command: false,
             overflow: false,
             negative: false,
-            should_run_reset_procedure: true,
+            total_cycles: 0,
+            initialized: false,
         }
     }
 
     pub fn reset(&mut self, bus: &mut dyn Bus16) {
         self.pc = bus.read_word(Self::RESET_VECTOR);
-        self.s = 0xFF;
+        self.irq_disable = true;
+        self.total_cycles += 6;
     }
 
-    pub fn clock(&mut self, bus: &mut dyn Bus16) {
-        if self.should_run_reset_procedure {
+    pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
+        if !self.initialized {
             self.reset(bus);
-            return;
+            self.initialized = true;
         }
 
-        let opcode = bus.read_byte(self.pc);
+        let cycles_at_start = self.total_cycles;
 
+        let opcode = bus.read_byte(self.pc);
         match opcode {
             // ADC
             0x69 => self.adc(bus, AddressingMode::Immediate, 2, 2),
@@ -284,7 +288,9 @@ impl CPU {
             // TYA
             0x98 => self.tya(bus, AddressingMode::Implied, 1, 2),
             _ => panic!("Unknown opcode: {}", opcode),
-        }
+        };
+
+        self.total_cycles - cycles_at_start
     }
 
     fn resolve_address(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
