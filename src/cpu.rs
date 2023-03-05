@@ -1,4 +1,4 @@
-use crate::bus::Bus16;
+use crate::memory::Bus16;
 
 #[derive(Copy, Clone)]
 enum AddressingMode {

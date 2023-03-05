@@ -1,4 +1,4 @@
-use untitled_emulator::{bus::Bus16, cpu::CPU, flat_memory::FlatMemory};
+use untitled_emulator::{cpu::CPU, memory::Bus16, memory::FlatMemory};
 
 #[test]
 fn two_plus_two() {
