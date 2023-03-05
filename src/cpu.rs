@@ -64,6 +64,47 @@ impl CPU {
         self.s = 0xFF;
     }
 
+    fn resolve_address(&mut self, bus: &mut dyn Bus16, addressing_mode: AddressingMode) -> u16 {
+        match addressing_mode {
+            AddressingMode::Immediate => self.pc + 1,
+            AddressingMode::Absolute => bus.read_word(self.pc + 1),
+            AddressingMode::ZeroPage => bus.read_byte(self.pc + 1) as u16,
+            AddressingMode::IndexedZeroPageX => {
+                let base_address_zero_page = bus.read_byte(self.pc + 1);
+                base_address_zero_page.wrapping_add(self.x) as u16
+            }
+            AddressingMode::IndexedZeroPageY => {
+                let base_address_zero_page = bus.read_byte(self.pc + 1);
+                base_address_zero_page.wrapping_add(self.y) as u16
+            }
+            AddressingMode::IndexedAbsoluteX => {
+                let base_address = bus.read_word(self.pc + 1);
+                base_address.wrapping_add(self.x as u16)
+            }
+            AddressingMode::IndexedAbsoluteY => {
+                let base_address = bus.read_word(self.pc + 1);
+                base_address.wrapping_add(self.y as u16)
+            }
+            AddressingMode::IndexedIndirectX => {
+                let indirect_base_address_zero_page = bus.read_byte(self.pc + 1);
+                let indirect_address = indirect_base_address_zero_page.wrapping_add(self.x) as u16;
+                bus.read_word(indirect_address)
+            }
+            AddressingMode::IndexedIndirectY => {
+                let indirect_address_zero_page = bus.read_byte(self.pc + 1);
+                let base_address = bus.read_word(indirect_address_zero_page as u16);
+                base_address.wrapping_add(self.y as u16)
+            }
+            AddressingMode::AbsoluteIndirect => {
+                let indirect_address = bus.read_word(self.pc + 1);
+                bus.read_word(indirect_address)
+            }
+            AddressingMode::Accumulator => {
+                panic!("Attempt to resolve address of accumulator register!",)
+            }
+        }
+    }
+
     pub fn clock(&mut self, bus: &mut dyn Bus16) {
         if self.should_run_reset_procedure {
             self.reset(bus);
