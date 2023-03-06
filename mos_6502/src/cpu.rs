@@ -581,14 +581,21 @@ impl CPU {
     }
 
     fn jmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+        let jmp_address = self.resolve_address(bus, addr_mode);
 
-        self.pc = address;
+        self.pc = jmp_address;
         self.total_cycles += cycles;
     }
 
     fn jsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'JSR'");
+        let jmp_address = self.resolve_address(bus, addr_mode);
+
+        self.pc += length - 1;
+        bus.write_word(Self::STACK_TOP + self.s as u16 - 1, self.pc);
+        self.s = self.s.wrapping_sub(2);
+
+        self.pc = jmp_address;
+        self.total_cycles += cycles;
     }
 
     fn lda(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
