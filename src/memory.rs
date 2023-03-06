@@ -20,7 +20,7 @@ pub trait Bus16 {
         let mut address = base_address;
         for byte in code {
             self.write_byte(address, *byte);
-            address += 1;
+            address = address.wrapping_add(1);
         }
 
         if let Some(reset_vector) = reset_vector {
