@@ -176,9 +176,9 @@ impl CPU {
             0xF6 => self.inc(bus, AddressingMode::IndexedZeroPageX, 2, 6),
             0xFE => self.inc(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
             // INX
-            0xE8 => self.inx(bus, AddressingMode::Implied, 1, 2),
+            0xE8 => self.inx(1, 2),
             // INY
-            0xC8 => self.iny(bus, AddressingMode::Implied, 1, 2),
+            0xC8 => self.iny(1, 2),
             // JMP
             0x4C => self.jmp(bus, AddressingMode::Absolute, 3),
             0x6C => self.jmp(bus, AddressingMode::AbsoluteIndirect, 5),
@@ -564,12 +564,20 @@ impl CPU {
         panic!("Unimplemented opcode 'INC'");
     }
 
-    fn inx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'INX'");
+    fn inx(&mut self, length: u16, cycles: u64) {
+        self.x = self.x.wrapping_add(1);
+        self.set_nz_flags(self.x);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn iny(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'INY'");
+    fn iny(&mut self, length: u16, cycles: u64) {
+        self.y = self.y.wrapping_add(1);
+        self.set_nz_flags(self.y);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn jmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, cycles: u64) {
