@@ -17,10 +17,8 @@ pub trait Bus16 {
     }
 
     fn load_code(&mut self, code: &[u8], base_address: u16, reset_vector: Option<u16>) {
-        let mut address = base_address;
-        for byte in code {
-            self.write_byte(address, *byte);
-            address += 1;
+        for i in 0..code.len() {
+            self.write_byte(base_address + i as u16, code[i]);
         }
 
         if let Some(reset_vector) = reset_vector {

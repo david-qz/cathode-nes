@@ -70,6 +70,10 @@ impl CPU {
         self.total_cycles += 6;
     }
 
+    pub fn pc(&self) -> u16 {
+        self.pc
+    }
+
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
         if !self.initialized {
             self.reset(bus);
