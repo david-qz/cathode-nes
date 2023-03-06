@@ -245,7 +245,7 @@ impl CPU {
             // RTI
             0x40 => self.rti(bus, AddressingMode::Implied, 1, 6),
             // RTS
-            0x60 => self.rts(bus, AddressingMode::Implied, 1, 6),
+            0x60 => self.rts(bus, 6),
             // SBC
             0xE9 => self.sbc(bus, AddressingMode::Immediate, 2, 2),
             0xED => self.sbc(bus, AddressingMode::Absolute, 3, 4),
@@ -707,8 +707,12 @@ impl CPU {
         panic!("Unimplemented opcode 'RTI'");
     }
 
-    fn rts(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'RTS'");
+    fn rts(&mut self, bus: &mut dyn Bus16, cycles: u64) {
+        self.s = self.s.wrapping_add(2);
+        let jmp_address = bus.read_word(Self::STACK_TOP + self.s as u16 - 1 as u16);
+
+        self.pc = jmp_address + 1;
+        self.total_cycles += cycles;
     }
 
     fn sbc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
