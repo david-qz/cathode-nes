@@ -42,7 +42,11 @@ fn klaus_functional_test_no_decimal() {
 
     match last_pc {
         Some(0x336D) => return,
-        Some(pc) => panic!("CPU trapped at PC={:X}", pc),
+        Some(pc) => panic!(
+            "CPU trapped at PC={:X} in test={}",
+            pc,
+            memory.read_byte(0x200)
+        ),
         None => panic!("The CPU didn't run."),
     }
 }
