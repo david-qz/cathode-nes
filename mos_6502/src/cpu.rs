@@ -263,7 +263,7 @@ impl CPU {
             0x78 => self.sei(1, 2),
             // STA
             0x8D => self.sta(bus, AddressingMode::Absolute, 3, 4),
-            0x85 => self.sta(bus, AddressingMode::ZeroPage, 3, 3),
+            0x85 => self.sta(bus, AddressingMode::ZeroPage, 2, 3),
             0x81 => self.sta(bus, AddressingMode::IndexedIndirectX, 2, 6),
             0x91 => self.sta(bus, AddressingMode::IndexedIndirectY, 2, 6),
             0x95 => self.sta(bus, AddressingMode::IndexedZeroPageX, 2, 4),
