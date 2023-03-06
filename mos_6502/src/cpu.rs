@@ -504,7 +504,12 @@ impl CPU {
     }
 
     fn ldx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'LDX'");
+        let address = self.resolve_address(bus, addr_mode);
+        self.x = bus.read_byte(address);
+        self.set_nz_flags(self.x);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn ldy(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
