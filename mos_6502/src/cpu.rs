@@ -30,7 +30,6 @@ pub struct CPU {
     zero: bool,
     irq_disable: bool,
     decimal_mode: bool,
-    brk_command: bool,
     overflow: bool,
     negative: bool,
 
@@ -56,7 +55,6 @@ impl CPU {
             zero: false,
             irq_disable: false,
             decimal_mode: false,
-            brk_command: false,
             overflow: false,
             negative: false,
             total_cycles: 0,
@@ -634,11 +632,11 @@ impl CPU {
     }
 
     #[rustfmt::skip]
-    fn encode_p(&self) -> u8 {
+    fn encode_p(&self, brk_command: bool) -> u8 {
         0 | (self.negative as u8)     << 7
           | (self.overflow as u8)     << 6
           | 1                         << 5
-          | (self.brk_command as u8)  << 4
+          | (brk_command as u8)       << 4
           | (self.decimal_mode as u8) << 3
           | (self.irq_disable as u8)  << 2
           | (self.zero as u8)         << 1
@@ -649,7 +647,6 @@ impl CPU {
     fn decode_p(&mut self, p: u8) {
         self.negative     = p & (1 << 7) != 0;
         self.overflow     = p & (1 << 6) != 0;
-        self.brk_command  = p & (1 << 4) != 0;
         self.decimal_mode = p & (1 << 3) != 0;
         self.irq_disable  = p & (1 << 2) != 0;
         self.zero         = p & (1 << 1) != 0;
@@ -657,7 +654,7 @@ impl CPU {
     }
 
     fn php(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        let p = self.encode_p();
+        let p = self.encode_p(true);
         bus.write_byte(Self::STACK_TOP + self.s as u16, p);
         self.s = self.s.wrapping_sub(1);
 
