@@ -382,19 +382,29 @@ impl CPU {
         panic!("Unimplemented opcode 'AND'");
     }
 
-    fn bcc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BCC'");
-    }
-
-    fn bcs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BCS'");
-    }
-
-    fn beq(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        if self.zero {
+    fn relative_conditional_branch(&mut self, bus: &mut dyn Bus16, should_branch: bool) {
+        if should_branch {
             let offset = self.resolve_relative_offset(bus);
             self.pc = self.pc.wrapping_add_signed(offset);
         }
+    }
+
+    fn bcc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+        self.relative_conditional_branch(bus, !self.carry);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    fn bcs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+        self.relative_conditional_branch(bus, self.carry);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    fn beq(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+        self.relative_conditional_branch(bus, self.zero);
 
         self.pc += length;
         self.total_cycles += cycles;
@@ -405,21 +415,24 @@ impl CPU {
     }
 
     fn bmi(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BMI'");
+        self.relative_conditional_branch(bus, self.negative);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn bne(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        if !self.zero {
-            let offset = self.resolve_relative_offset(bus);
-            self.pc = self.pc.wrapping_add_signed(offset);
-        }
+        self.relative_conditional_branch(bus, !self.zero);
 
         self.pc += length;
         self.total_cycles += cycles;
     }
 
     fn bpl(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BPL'");
+        self.relative_conditional_branch(bus, !self.negative);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn brk(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
@@ -427,11 +440,17 @@ impl CPU {
     }
 
     fn bvc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BVC'");
+        self.relative_conditional_branch(bus, !self.overflow);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn bvs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BVS'");
+        self.relative_conditional_branch(bus, self.overflow);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn clc(&mut self, length: u16, cycles: u64) {
