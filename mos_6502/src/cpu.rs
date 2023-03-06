@@ -1,6 +1,6 @@
 use crate::memory::Bus16;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum AddressingMode {
     Accumulator,
     Immediate,
@@ -182,8 +182,8 @@ impl CPU {
             // INY
             0xC8 => self.iny(bus, AddressingMode::Implied, 1, 2),
             // JMP
-            0x4C => self.jmp(bus, AddressingMode::ZeroPage, 3, 3),
-            0x6C => self.jmp(bus, AddressingMode::AbsoluteIndirect, 3, 5),
+            0x4C => self.jmp(bus, AddressingMode::Absolute, 3),
+            0x6C => self.jmp(bus, AddressingMode::AbsoluteIndirect, 5),
             // JSR
             0x20 => self.jsr(bus, AddressingMode::Absolute, 3, 6),
             // LDA
@@ -486,8 +486,11 @@ impl CPU {
         panic!("Unimplemented opcode 'INY'");
     }
 
-    fn jmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'JMP'");
+    fn jmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, cycles: u64) {
+        let address = self.resolve_address(bus, addr_mode);
+
+        self.pc = address;
+        self.total_cycles += cycles;
     }
 
     fn jsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
