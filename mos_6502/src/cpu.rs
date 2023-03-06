@@ -214,7 +214,7 @@ impl CPU {
             0x56 => self.lsr(bus, AddressingMode::IndexedZeroPageX, 2, 6),
             0x5E => self.lsr(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
             // NOP
-            0xEA => self.nop(bus, AddressingMode::Implied, 1, 2),
+            0xEA => self.nop(1, 2),
             // ORA
             0x09 => self.ora(bus, AddressingMode::Immediate, 2, 2),
             0x0D => self.ora(bus, AddressingMode::Absolute, 3, 4),
@@ -547,8 +547,9 @@ impl CPU {
         panic!("Unimplemented opcode 'LSR'");
     }
 
-    fn nop(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'NOP'");
+    fn nop(&mut self, length: u16, cycles: u64) {
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn ora(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
