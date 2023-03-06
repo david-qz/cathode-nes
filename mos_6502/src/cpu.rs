@@ -652,10 +652,7 @@ impl CPU {
     }
 
     fn set_nz_flags(&mut self, value: u8) {
-        if value == 0 {
-            self.zero = true;
-        } else if value & (1 << 7) != 0 {
-            self.negative = true;
-        }
+        self.zero = value == 0;
+        self.negative = value & (1 << 7) != 0;
     }
 }
