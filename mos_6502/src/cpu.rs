@@ -258,11 +258,11 @@ impl CPU {
             0xFD => self.sbc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0xF9 => self.sbc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
             // SEC
-            0x38 => self.sec(bus, AddressingMode::Implied, 1, 2),
+            0x38 => self.sec(1, 2),
             // SED
-            0xF8 => self.sed(bus, AddressingMode::Implied, 1, 2),
+            0xF8 => self.sed(1, 2),
             // SEI
-            0x78 => self.sei(bus, AddressingMode::Implied, 1, 2),
+            0x78 => self.sei(1, 2),
             // STA
             0x8D => self.sta(bus, AddressingMode::Absolute, 3, 4),
             0x85 => self.sta(bus, AddressingMode::ZeroPage, 3, 3),
@@ -559,16 +559,25 @@ impl CPU {
         panic!("Unimplemented opcode 'SBC'");
     }
 
-    fn sec(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'SEC'");
+    fn sec(&mut self, length: u16, cycles: u64) {
+        self.carry = true;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn sed(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'SED'");
+    fn sed(&mut self, length: u16, cycles: u64) {
+        self.decimal_mode = true;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn sei(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'SEI'");
+    fn sei(&mut self, length: u16, cycles: u64) {
+        self.irq_disable = true;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn sta(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
