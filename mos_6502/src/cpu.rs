@@ -38,7 +38,9 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub const RESET_VECTOR: u16 = 0xFFFA;
+    pub const RESET_VECTOR: u16 = 0xFFFC;
+    pub const IRQ_VECTOR: u16 = 0xFFFE;
+    pub const NMI_VECTOR: u16 = 0xFFFA;
 
     // The 6502 uses a descending stack.
     const STACK_BOTTOM: u16 = 0x01FF;
@@ -122,7 +124,7 @@ impl CPU {
             // BPL
             0x10 => self.bpl(bus, 2, 2),
             // BRK
-            0x00 => self.brk(bus, AddressingMode::Implied, 1, 7),
+            0x00 => self.brk(bus, 7),
             // BVC
             0x50 => self.bvc(bus, 2, 2),
             // BVS
@@ -433,8 +435,19 @@ impl CPU {
         self.total_cycles += cycles;
     }
 
-    fn brk(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BRK'");
+    fn brk(&mut self, bus: &mut dyn Bus16, cycles: u64) {
+        let return_address = self.pc + 2;
+        bus.write_word(Self::STACK_TOP + self.s as u16 - 1, return_address);
+        self.s = self.s.wrapping_sub(2);
+
+        let p = self.encode_p(true);
+        bus.write_byte(Self::STACK_TOP + self.s as u16, p);
+        self.s = self.s.wrapping_sub(1);
+
+        self.irq_disable = true;
+
+        self.pc = bus.read_word(Self::IRQ_VECTOR);
+        self.total_cycles += cycles;
     }
 
     fn bvc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
