@@ -462,16 +462,55 @@ impl CPU {
         self.total_cycles += cycles;
     }
 
+    fn compare_value(&mut self, lhs: u8, rhs: u8) {
+        use std::cmp::Ordering::*;
+        match lhs.cmp(&rhs) {
+            Less => {
+                self.zero = false;
+                self.carry = false;
+                self.negative = lhs.wrapping_sub(rhs) & (1 << 7) != 0;
+            }
+            Greater => {
+                self.zero = false;
+                self.carry = true;
+                self.negative = lhs.wrapping_sub(rhs) & (1 << 7) != 0;
+            }
+            Equal => {
+                self.zero = true;
+                self.carry = true;
+                self.negative = false;
+            }
+        }
+    }
+
     fn cmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CMP'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+
+        self.compare_value(self.a, value);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn cpx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CPX'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+
+        self.compare_value(self.x, value);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn cpy(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CPY'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+
+        self.compare_value(self.y, value);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn dec(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
