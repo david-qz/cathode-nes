@@ -130,13 +130,13 @@ impl CPU {
             // BVS
             0x70 => self.bvs(bus, AddressingMode::Relative, 2, 2),
             // CLC
-            0x18 => self.clc(bus, AddressingMode::Implied, 1, 2),
+            0x18 => self.clc(1, 2),
             // CLD
-            0xD8 => self.cld(bus, AddressingMode::Implied, 1, 2),
+            0xD8 => self.cld(1, 2),
             // CLI
-            0x58 => self.cli(bus, AddressingMode::Implied, 1, 2),
+            0x58 => self.cli(1, 2),
             // CLV
-            0xB8 => self.clv(bus, AddressingMode::Implied, 1, 2),
+            0xB8 => self.clv(1, 2),
             //CMP
             0xC9 => self.cmp(bus, AddressingMode::Immediate, 2, 2),
             0xCD => self.cmp(bus, AddressingMode::Absolute, 3, 4),
@@ -418,20 +418,32 @@ impl CPU {
         panic!("Unimplemented opcode 'BVS'");
     }
 
-    fn clc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CLC'");
+    fn clc(&mut self, length: u16, cycles: u64) {
+        self.carry = false;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn cld(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CLD'");
+    fn cld(&mut self, length: u16, cycles: u64) {
+        self.decimal_mode = false;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn cli(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CLI'");
+    fn cli(&mut self, length: u16, cycles: u64) {
+        self.irq_disable = false;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn clv(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'CLV'");
+    fn clv(&mut self, length: u16, cycles: u64) {
+        self.overflow = false;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn cmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
