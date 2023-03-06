@@ -280,17 +280,17 @@ impl CPU {
             0x84 => self.sty(bus, AddressingMode::ZeroPage, 3, 3),
             0x94 => self.sty(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             // TAX
-            0xAA => self.tax(bus, AddressingMode::Implied, 1, 2),
+            0xAA => self.tax(1, 2),
             // TAY
-            0xA8 => self.tay(bus, AddressingMode::Implied, 1, 2),
+            0xA8 => self.tay(1, 2),
             // TSX
-            0xBA => self.tsx(bus, AddressingMode::Implied, 1, 2),
+            0xBA => self.tsx(1, 2),
             // TXA
-            0x8A => self.txa(bus, AddressingMode::Implied, 1, 2),
+            0x8A => self.txa(1, 2),
             // TXS
-            0x9A => self.txs(bus, AddressingMode::Implied, 1, 2),
+            0x9A => self.txs(1, 2),
             // TYA
-            0x98 => self.tya(bus, AddressingMode::Implied, 1, 2),
+            0x98 => self.tya(1, 2),
             _ => panic!("Unknown opcode: {}", opcode),
         };
 
@@ -601,28 +601,51 @@ impl CPU {
         panic!("Unimplemented opcode 'STY'");
     }
 
-    fn tax(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'TAX'");
+    fn tax(&mut self, length: u16, cycles: u64) {
+        self.x = self.a;
+        self.set_nz_flags(self.x);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn tay(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'TAY'");
+    fn tay(&mut self, length: u16, cycles: u64) {
+        self.y = self.a;
+        self.set_nz_flags(self.y);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn tsx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'TSX'");
+    fn tsx(&mut self, length: u16, cycles: u64) {
+        self.x = self.s;
+        self.set_nz_flags(self.x);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn txa(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'TXA'");
+    fn txa(&mut self, length: u16, cycles: u64) {
+        self.a = self.x;
+        self.set_nz_flags(self.a);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn txs(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'TXS'");
+    fn txs(&mut self, length: u16, cycles: u64) {
+        self.s = self.x;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn tya(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'TYA'");
+    fn tya(&mut self, length: u16, cycles: u64) {
+        self.a = self.y;
+        self.set_nz_flags(self.a);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn set_nz_flags(&mut self, value: u8) {
