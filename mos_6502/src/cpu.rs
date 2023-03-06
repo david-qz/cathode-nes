@@ -160,9 +160,9 @@ impl CPU {
             0xD6 => self.dec(bus, AddressingMode::IndexedZeroPageX, 2, 6),
             0xDE => self.dec(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
             // DEX
-            0xCA => self.dex(bus, AddressingMode::Implied, 1, 2),
+            0xCA => self.dex(1, 2),
             // DEY
-            0x88 => self.dey(bus, AddressingMode::Implied, 1, 2),
+            0x88 => self.dey(1, 2),
             // EOR
             0x49 => self.eor(bus, AddressingMode::Immediate, 2, 2),
             0x4D => self.eor(bus, AddressingMode::Absolute, 3, 4),
@@ -478,12 +478,20 @@ impl CPU {
         panic!("Unimplemented opcode 'DEC'");
     }
 
-    fn dex(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'DEX'");
+    fn dex(&mut self, length: u16, cycles: u64) {
+        self.x = self.x.wrapping_sub(1);
+        self.set_nz_flags(self.x);
+
+        self.pc += length;
+        self.total_cycles += cycles
     }
 
-    fn dey(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'DEY'");
+    fn dey(&mut self, length: u16, cycles: u64) {
+        self.y = self.y.wrapping_sub(1);
+        self.set_nz_flags(self.y);
+
+        self.pc += length;
+        self.total_cycles += cycles
     }
 
     fn eor(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
