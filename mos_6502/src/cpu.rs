@@ -109,26 +109,26 @@ impl CPU {
             0x16 => self.asl(bus, AddressingMode::IndexedZeroPageX, 2, 6),
             0x1E => self.asl(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
             // BCC
-            0x90 => self.bcc(bus, AddressingMode::Relative, 2, 2),
+            0x90 => self.bcc(bus, 2, 2),
             // BCS
-            0xB0 => self.bcs(bus, AddressingMode::Relative, 2, 2),
+            0xB0 => self.bcs(bus, 2, 2),
             // BEQ
-            0xF0 => self.beq(bus, AddressingMode::Relative, 2, 2),
+            0xF0 => self.beq(bus, 2, 2),
             // BIT
             0x2C => self.bit(bus, AddressingMode::Absolute, 3, 4),
             0x24 => self.bit(bus, AddressingMode::ZeroPage, 3, 3),
             // BMI
-            0x30 => self.bmi(bus, AddressingMode::Relative, 2, 2),
+            0x30 => self.bmi(bus, 2, 2),
             // BNE
-            0xD0 => self.bne(bus, AddressingMode::Relative, 2, 2),
+            0xD0 => self.bne(bus, 2, 2),
             // BPL
-            0x10 => self.bpl(bus, AddressingMode::Relative, 2, 2),
+            0x10 => self.bpl(bus, 2, 2),
             // BRK
             0x00 => self.brk(bus, AddressingMode::Implied, 1, 7),
             // BVC
-            0x50 => self.bvc(bus, AddressingMode::Relative, 2, 2),
+            0x50 => self.bvc(bus, 2, 2),
             // BVS
-            0x70 => self.bvs(bus, AddressingMode::Relative, 2, 2),
+            0x70 => self.bvs(bus, 2, 2),
             // CLC
             0x18 => self.clc(1, 2),
             // CLD
@@ -332,17 +332,21 @@ impl CPU {
                 let indirect_address = bus.read_word(self.pc + 1);
                 bus.read_word(indirect_address)
             }
-            AddressingMode::Relative => {
-                let offset: i8 = unsafe { std::mem::transmute(bus.read_byte(self.pc + 1)) };
-                self.pc.wrapping_add_signed(offset as i16)
-            }
             AddressingMode::Accumulator => {
                 panic!("Attempt to resolve address of accumulator register!")
             }
             AddressingMode::Implied => {
                 panic!("Attempt to resolve address in implied addressing mode!")
             }
+            AddressingMode::Relative => {
+                panic!("Attempt to resolve address in relative addressing mode!")
+            }
         }
+    }
+
+    fn resolve_relative_offset(&self, bus: &mut dyn Bus16) -> i16 {
+        let offset: i8 = unsafe { std::mem::transmute(bus.read_byte(self.pc + 1)) };
+        offset as i16
     }
 
     fn adc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
@@ -378,31 +382,43 @@ impl CPU {
         panic!("Unimplemented opcode 'AND'");
     }
 
-    fn bcc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn bcc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BCC'");
     }
 
-    fn bcs(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn bcs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BCS'");
     }
 
-    fn beq(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BCS'");
+    fn beq(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+        if self.zero {
+            let offset = self.resolve_relative_offset(bus);
+            self.pc = self.pc.wrapping_add_signed(offset);
+        }
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn bit(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BIT'");
     }
 
-    fn bmi(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn bmi(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BMI'");
     }
 
-    fn bne(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BNE'");
+    fn bne(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+        if !self.zero {
+            let offset = self.resolve_relative_offset(bus);
+            self.pc = self.pc.wrapping_add_signed(offset);
+        }
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
-    fn bpl(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn bpl(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BPL'");
     }
 
@@ -410,11 +426,11 @@ impl CPU {
         panic!("Unimplemented opcode 'BRK'");
     }
 
-    fn bvc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn bvc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BVC'");
     }
 
-    fn bvs(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn bvs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         panic!("Unimplemented opcode 'BVS'");
     }
 
