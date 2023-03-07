@@ -243,7 +243,7 @@ impl CPU {
             0x76 => self.ror(bus, AddressingMode::IndexedZeroPageX, 2, 6),
             0x7E => self.ror(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
             // RTI
-            0x40 => self.rti(bus, AddressingMode::Implied, 1, 6),
+            0x40 => self.rti(bus, 6),
             // RTS
             0x60 => self.rts(bus, 6),
             // SBC
@@ -724,8 +724,13 @@ impl CPU {
         panic!("Unimplemented opcode 'ROR'");
     }
 
-    fn rti(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'RTI'");
+    fn rti(&mut self, bus: &mut dyn Bus16, cycles: u64) {
+        let p = self.pull_byte(bus);
+        self.decode_p(p);
+        let return_address = self.pull_word(bus);
+
+        self.pc = return_address;
+        self.total_cycles += cycles;
     }
 
     fn rts(&mut self, bus: &mut dyn Bus16, cycles: u64) {
