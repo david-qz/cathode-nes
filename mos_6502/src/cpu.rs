@@ -42,9 +42,7 @@ impl CPU {
     pub const IRQ_VECTOR: u16 = 0xFFFE;
     pub const NMI_VECTOR: u16 = 0xFFFA;
 
-    // The 6502 uses a descending stack.
-    const STACK_BOTTOM: u16 = 0x01FF;
-    const STACK_TOP: u16 = 0x0100;
+    const STACK_BASE: u16 = 0x0100;
 
     pub fn new() -> Self {
         Self {
@@ -349,6 +347,27 @@ impl CPU {
         offset as i16
     }
 
+    fn push_byte(&mut self, bus: &mut dyn Bus16, value: u8) {
+        bus.write_byte(Self::STACK_BASE + self.s as u16, value);
+        self.s = self.s.wrapping_sub(1);
+    }
+
+    fn push_word(&mut self, bus: &mut dyn Bus16, value: u16) {
+        self.push_byte(bus, ((value & 0xFF00) >> 8) as u8);
+        self.push_byte(bus, ((value & 0x00FF) >> 0) as u8);
+    }
+
+    fn pull_byte(&mut self, bus: &mut dyn Bus16) -> u8 {
+        self.s = self.s.wrapping_add(1);
+        bus.read_byte(Self::STACK_BASE + self.s as u16)
+    }
+
+    fn pull_word(&mut self, bus: &mut dyn Bus16) -> u16 {
+        let l_byte = self.pull_byte(bus);
+        let h_byte = self.pull_byte(bus);
+        (h_byte as u16) << 8 | (l_byte as u16)
+    }
+
     fn adc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         if self.decimal_mode {
             panic!("ADC: decimal mode not yet implemented!");
@@ -437,13 +456,9 @@ impl CPU {
 
     fn brk(&mut self, bus: &mut dyn Bus16, cycles: u64) {
         let return_address = self.pc + 2;
-        bus.write_word(Self::STACK_TOP + self.s as u16 - 1, return_address);
-        self.s = self.s.wrapping_sub(2);
-
+        self.push_word(bus, return_address);
         let p = self.encode_p(true);
-        bus.write_byte(Self::STACK_TOP + self.s as u16, p);
-        self.s = self.s.wrapping_sub(1);
-
+        self.push_byte(bus, p);
         self.irq_disable = true;
 
         self.pc = bus.read_word(Self::IRQ_VECTOR);
@@ -602,10 +617,7 @@ impl CPU {
 
     fn jsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         let jmp_address = self.resolve_address(bus, addr_mode);
-
-        self.pc += length - 1;
-        bus.write_word(Self::STACK_TOP + self.s as u16 - 1, self.pc);
-        self.s = self.s.wrapping_sub(2);
+        self.push_word(bus, self.pc + length - 1);
 
         self.pc = jmp_address;
         self.total_cycles += cycles;
@@ -652,8 +664,7 @@ impl CPU {
     }
 
     fn pha(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        bus.write_byte(Self::STACK_TOP + self.s as u16, self.a);
-        self.s = self.s.wrapping_sub(1);
+        self.push_byte(bus, self.a);
 
         self.pc += length;
         self.total_cycles += cycles;
@@ -683,16 +694,14 @@ impl CPU {
 
     fn php(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         let p = self.encode_p(true);
-        bus.write_byte(Self::STACK_TOP + self.s as u16, p);
-        self.s = self.s.wrapping_sub(1);
+        self.push_byte(bus, p);
 
         self.pc += length;
         self.total_cycles += cycles;
     }
 
     fn pla(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        self.s = self.s.wrapping_add(1);
-        self.a = bus.read_byte(Self::STACK_TOP + self.s as u16);
+        self.a = self.pull_byte(bus);
         self.set_nz_flags(self.a);
 
         self.pc += length;
@@ -700,8 +709,7 @@ impl CPU {
     }
 
     fn plp(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
-        self.s = self.s.wrapping_add(1);
-        let p = bus.read_byte(Self::STACK_TOP + self.s as u16);
+        let p = self.pull_byte(bus);
         self.decode_p(p);
 
         self.pc += length;
@@ -721,8 +729,7 @@ impl CPU {
     }
 
     fn rts(&mut self, bus: &mut dyn Bus16, cycles: u64) {
-        self.s = self.s.wrapping_add(2);
-        let jmp_address = bus.read_word(Self::STACK_TOP + self.s as u16 - 1 as u16);
+        let jmp_address = self.pull_word(bus);
 
         self.pc = jmp_address + 1;
         self.total_cycles += cycles;
