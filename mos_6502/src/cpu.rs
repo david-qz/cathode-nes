@@ -273,11 +273,11 @@ impl CPU {
             0x99 => self.sta(bus, AddressingMode::IndexedAbsoluteY, 3, 5),
             // STX
             0x8E => self.stx(bus, AddressingMode::Absolute, 3, 4),
-            0x86 => self.stx(bus, AddressingMode::ZeroPage, 3, 3),
+            0x86 => self.stx(bus, AddressingMode::ZeroPage, 2, 3),
             0x96 => self.stx(bus, AddressingMode::IndexedZeroPageY, 2, 4),
             // STY
             0x8C => self.sty(bus, AddressingMode::Absolute, 3, 4),
-            0x84 => self.sty(bus, AddressingMode::ZeroPage, 3, 3),
+            0x84 => self.sty(bus, AddressingMode::ZeroPage, 2, 3),
             0x94 => self.sty(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             // TAX
             0xAA => self.tax(1, 2),
@@ -762,11 +762,19 @@ impl CPU {
     }
 
     fn stx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'STX'");
+        let address = self.resolve_address(bus, addr_mode);
+        bus.write_byte(address, self.x);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn sty(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'STY'");
+        let address = self.resolve_address(bus, addr_mode);
+        bus.write_byte(address, self.y);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn tax(&mut self, length: u16, cycles: u64) {
