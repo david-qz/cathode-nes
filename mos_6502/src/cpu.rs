@@ -114,7 +114,7 @@ impl CPU {
             0xF0 => self.beq(bus, 2, 2),
             // BIT
             0x2C => self.bit(bus, AddressingMode::Absolute, 3, 4),
-            0x24 => self.bit(bus, AddressingMode::ZeroPage, 3, 3),
+            0x24 => self.bit(bus, AddressingMode::ZeroPage, 2, 3),
             // BMI
             0x30 => self.bmi(bus, 2, 2),
             // BNE
@@ -430,7 +430,14 @@ impl CPU {
     }
 
     fn bit(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'BIT'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+        self.zero = self.a & value == 0;
+        self.negative = value & 0b10000000 != 0;
+        self.overflow = value & 0b01000000 != 0;
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn bmi(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
