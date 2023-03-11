@@ -398,7 +398,30 @@ impl CPU {
     }
 
     fn asl(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'AND'");
+        let value = match addr_mode {
+            AddressingMode::Accumulator => self.a,
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.read_byte(address)
+            }
+        };
+
+        let result = value << 1;
+        self.set_nz_flags(result);
+        self.carry = value & (1 << 7) != 0;
+
+        match addr_mode {
+            AddressingMode::Accumulator => {
+                self.a = result;
+            }
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.write_byte(address, result);
+            }
+        }
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn relative_conditional_branch(&mut self, bus: &mut dyn Bus16, should_branch: bool) {
@@ -658,7 +681,30 @@ impl CPU {
     }
 
     fn lsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'LSR'");
+        let value = match addr_mode {
+            AddressingMode::Accumulator => self.a,
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.read_byte(address)
+            }
+        };
+
+        let result = value >> 1;
+        self.set_nz_flags(result);
+        self.carry = value & (1 << 0) != 0;
+
+        match addr_mode {
+            AddressingMode::Accumulator => {
+                self.a = result;
+            }
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.write_byte(address, result);
+            }
+        }
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn nop(&mut self, length: u16, cycles: u64) {
@@ -730,11 +776,57 @@ impl CPU {
     }
 
     fn rol(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'ROL'");
+        let value = match addr_mode {
+            AddressingMode::Accumulator => self.a,
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.read_byte(address)
+            }
+        };
+
+        let result = value.rotate_left(1) & 0b11111110 | (self.carry as u8) << 0;
+        self.carry = value & (1 << 7) != 0;
+        self.set_nz_flags(result);
+
+        match addr_mode {
+            AddressingMode::Accumulator => {
+                self.a = result;
+            }
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.write_byte(address, result);
+            }
+        }
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn ror(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'ROR'");
+        let value = match addr_mode {
+            AddressingMode::Accumulator => self.a,
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.read_byte(address)
+            }
+        };
+
+        let result = value.rotate_right(1) & 0b01111111 | (self.carry as u8) << 7;
+        self.carry = value & (1 << 0) != 0;
+        self.set_nz_flags(result);
+
+        match addr_mode {
+            AddressingMode::Accumulator => {
+                self.a = result;
+            }
+            _ => {
+                let address = self.resolve_address(bus, addr_mode);
+                bus.write_byte(address, result);
+            }
+        }
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn rti(&mut self, bus: &mut dyn Bus16, cycles: u64) {
