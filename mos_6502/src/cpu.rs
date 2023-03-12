@@ -368,6 +368,16 @@ impl CPU {
         (h_byte as u16) << 8 | (l_byte as u16)
     }
 
+    fn adder(&mut self, rhs: u8, lhs: u8, carry: bool) -> (u8, bool, bool) {
+        let (sum, carry1) = rhs.overflowing_add(lhs);
+        let (sum, carry2) = sum.overflowing_add(carry as u8);
+        (
+            sum,
+            carry1 || carry2,
+            ((sum ^ rhs) & (sum ^ lhs) & (1 << 7)) != 0,
+        )
+    }
+
     fn adc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
         if self.decimal_mode {
             panic!("ADC: decimal mode not yet implemented!");
@@ -376,18 +386,29 @@ impl CPU {
         let address = self.resolve_address(bus, addr_mode);
         let value = bus.read_byte(address);
 
-        let rhs = self.a;
-        let lhs = value;
-        let carry_in: u8 = unsafe { std::mem::transmute(self.carry) };
-
-        let wide_sum = (self.a as u16) + (value as u16) + (carry_in as u16);
-        let sum = (wide_sum & 0xFF) as u8;
-
-        self.carry = wide_sum > 0xFF;
-        self.overflow = ((sum ^ rhs) & (sum ^ lhs) & (1 << 7)) != 0;
-        self.set_nz_flags(sum);
-
+        let (sum, carry, overflow) = self.adder(self.a, value, self.carry);
         self.a = sum;
+        self.carry = carry;
+        self.overflow = overflow;
+        self.set_nz_flags(self.a);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    fn sbc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+        if self.decimal_mode {
+            panic!("SBC: decimal mode not yet implemented!");
+        }
+
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+
+        let (sum, carry, overflow) = self.adder(self.a, !value, self.carry);
+        self.a = sum;
+        self.carry = carry;
+        self.overflow = overflow;
+        self.set_nz_flags(self.a);
 
         self.pc += length;
         self.total_cycles += cycles;
@@ -863,10 +884,6 @@ impl CPU {
 
         self.pc = jmp_address + 1;
         self.total_cycles += cycles;
-    }
-
-    fn sbc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'SBC'");
     }
 
     fn sec(&mut self, length: u16, cycles: u64) {
