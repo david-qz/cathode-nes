@@ -289,7 +289,7 @@ impl CPU {
             0x9A => self.txs(1, 2),
             // TYA
             0x98 => self.tya(1, 2),
-            _ => panic!("Unknown opcode: {}", opcode),
+            _ => panic!("Unknown opcode: 0x{:X}", opcode),
         };
 
         self.total_cycles - cycles_at_start
