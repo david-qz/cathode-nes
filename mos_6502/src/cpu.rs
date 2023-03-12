@@ -295,7 +295,7 @@ impl CPU {
         self.total_cycles - cycles_at_start
     }
 
-    fn resolve_address(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
+    fn resolve_address(&self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
         match addr_mode {
             AddressingMode::Immediate => self.pc + 1,
             AddressingMode::Absolute => bus.read_word(self.pc + 1),
