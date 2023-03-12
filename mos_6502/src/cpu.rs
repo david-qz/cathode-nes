@@ -1,20 +1,5 @@
 use crate::memory::Bus16;
 
-#[derive(Copy, Clone, Debug)]
-enum AddressingMode {
-    Accumulator,
-    Immediate,
-    Absolute,
-    ZeroPage,
-    IndexedZeroPageX,
-    IndexedZeroPageY,
-    IndexedAbsoluteX,
-    IndexedAbsoluteY,
-    IndexedIndirectX,
-    IndirectIndexedY,
-    AbsoluteIndirect,
-}
-
 /// A MOS 6502 CPU
 pub struct CPU {
     pub a: u8,
@@ -60,7 +45,7 @@ impl CPU {
         }
     }
 
-    pub fn reset(&mut self, bus: &mut dyn Bus16) {
+    pub fn reset(&mut self, bus: &dyn Bus16) {
         self.pc = bus.read_word(Self::RESET_VECTOR);
         self.irq_disable = true;
         self.total_cycles += 6;
@@ -77,29 +62,92 @@ impl CPU {
         let opcode = bus.read_byte(self.pc);
         match opcode {
             // ADC
-            0x69 => self.adc(bus, AddressingMode::Immediate, 2, 2),
-            0x6D => self.adc(bus, AddressingMode::Absolute, 3, 4),
-            0x65 => self.adc(bus, AddressingMode::ZeroPage, 2, 3),
-            0x61 => self.adc(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x71 => self.adc(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0x75 => self.adc(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0x7D => self.adc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0x79 => self.adc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0x69 => {
+                let effective_address = self.resolve_address_immediate();
+                self.adc(bus, effective_address, 2, 2)
+            }
+            0x6D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.adc(bus, effective_address, 3, 4)
+            }
+            0x65 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.adc(bus, effective_address, 2, 3)
+            }
+            0x61 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.adc(bus, effective_address, 2, 6)
+            }
+            0x71 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.adc(bus, effective_address, 2, 5);
+            }
+            0x75 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.adc(bus, effective_address, 2, 4)
+            }
+            0x7D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.adc(bus, effective_address, 3, 4);
+            }
+            0x79 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.adc(bus, effective_address, 3, 4);
+            }
             // AND
-            0x29 => self.and(bus, AddressingMode::Immediate, 2, 2),
-            0x2D => self.and(bus, AddressingMode::Absolute, 3, 4),
-            0x25 => self.and(bus, AddressingMode::ZeroPage, 2, 3),
-            0x21 => self.and(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x31 => self.and(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0x35 => self.and(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0x3D => self.and(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0x39 => self.and(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0x29 => {
+                let effective_address = self.resolve_address_immediate();
+                self.and(bus, effective_address, 2, 2);
+            }
+            0x2D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.and(bus, effective_address, 3, 4);
+            }
+            0x25 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.and(bus, effective_address, 2, 3);
+            }
+            0x21 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.and(bus, effective_address, 2, 6);
+            }
+            0x31 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.and(bus, effective_address, 2, 5);
+            }
+            0x35 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.and(bus, effective_address, 2, 4);
+            }
+            0x3D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.and(bus, effective_address, 3, 4);
+            }
+            0x39 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.and(bus, effective_address, 3, 4);
+            }
             // ASL
-            0x0E => self.asl(bus, AddressingMode::Absolute, 3, 4),
-            0x06 => self.asl(bus, AddressingMode::ZeroPage, 2, 3),
-            0x0A => self.asl(bus, AddressingMode::Accumulator, 1, 2),
-            0x16 => self.asl(bus, AddressingMode::IndexedZeroPageX, 2, 6),
-            0x1E => self.asl(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            0x0E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.asl(bus, Some(effective_address), 3, 4);
+            }
+            0x06 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.asl(bus, Some(effective_address), 2, 3);
+            }
+            0x0A => {
+                // Accumulator addressing mode.
+                self.asl(bus, None, 1, 2);
+            }
+            0x16 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.asl(bus, Some(effective_address), 2, 6);
+            }
+            0x1E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.asl(bus, Some(effective_address), 3, 7);
+            }
             // BCC
             0x90 => self.bcc(bus, 2, 2),
             // BCS
@@ -107,8 +155,14 @@ impl CPU {
             // BEQ
             0xF0 => self.beq(bus, 2, 2),
             // BIT
-            0x2C => self.bit(bus, AddressingMode::Absolute, 3, 4),
-            0x24 => self.bit(bus, AddressingMode::ZeroPage, 2, 3),
+            0x2C => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.bit(bus, effective_address, 3, 4);
+            }
+            0x24 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.bit(bus, effective_address, 2, 3);
+            }
             // BMI
             0x30 => self.bmi(bus, 2, 2),
             // BNE
@@ -130,92 +184,284 @@ impl CPU {
             // CLV
             0xB8 => self.clv(1, 2),
             //CMP
-            0xC9 => self.cmp(bus, AddressingMode::Immediate, 2, 2),
-            0xCD => self.cmp(bus, AddressingMode::Absolute, 3, 4),
-            0xC5 => self.cmp(bus, AddressingMode::ZeroPage, 2, 3),
-            0xC1 => self.cmp(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0xD1 => self.cmp(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0xD5 => self.cmp(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0xDD => self.cmp(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0xD9 => self.cmp(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0xC9 => {
+                let effective_address = self.resolve_address_immediate();
+                self.cmp(bus, effective_address, 2, 2);
+            }
+            0xCD => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.cmp(bus, effective_address, 3, 4);
+            }
+            0xC5 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.cmp(bus, effective_address, 2, 3);
+            }
+            0xC1 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.cmp(bus, effective_address, 2, 6);
+            }
+            0xD1 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.cmp(bus, effective_address, 2, 5);
+            }
+            0xD5 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.cmp(bus, effective_address, 2, 4);
+            }
+            0xDD => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.cmp(bus, effective_address, 3, 4);
+            }
+            0xD9 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.cmp(bus, effective_address, 3, 4);
+            }
             // CPX
-            0xE0 => self.cpx(bus, AddressingMode::Immediate, 2, 2),
-            0xEC => self.cpx(bus, AddressingMode::Absolute, 3, 4),
-            0xE4 => self.cpx(bus, AddressingMode::ZeroPage, 2, 3),
+            0xE0 => {
+                let effective_address = self.resolve_address_immediate();
+                self.cpx(bus, effective_address, 2, 2);
+            }
+            0xEC => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.cpx(bus, effective_address, 3, 4);
+            }
+            0xE4 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.cpx(bus, effective_address, 2, 3);
+            }
             // CPY
-            0xC0 => self.cpy(bus, AddressingMode::Immediate, 2, 2),
-            0xCC => self.cpy(bus, AddressingMode::Absolute, 3, 4),
-            0xC4 => self.cpy(bus, AddressingMode::ZeroPage, 2, 3),
+            0xC0 => {
+                let effective_address = self.resolve_address_immediate();
+                self.cpy(bus, effective_address, 2, 2);
+            }
+            0xCC => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.cpy(bus, effective_address, 3, 4);
+            }
+            0xC4 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.cpy(bus, effective_address, 2, 3);
+            }
             // DEC
-            0xCE => self.dec(bus, AddressingMode::Absolute, 3, 6),
-            0xC6 => self.dec(bus, AddressingMode::ZeroPage, 2, 5),
-            0xD6 => self.dec(bus, AddressingMode::IndexedZeroPageX, 2, 6),
-            0xDE => self.dec(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            0xCE => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.dec(bus, effective_address, 3, 6);
+            }
+            0xC6 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.dec(bus, effective_address, 2, 5);
+            }
+            0xD6 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.dec(bus, effective_address, 2, 6);
+            }
+            0xDE => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.dec(bus, effective_address, 3, 7);
+            }
             // DEX
             0xCA => self.dex(1, 2),
             // DEY
             0x88 => self.dey(1, 2),
             // EOR
-            0x49 => self.eor(bus, AddressingMode::Immediate, 2, 2),
-            0x4D => self.eor(bus, AddressingMode::Absolute, 3, 4),
-            0x45 => self.eor(bus, AddressingMode::ZeroPage, 2, 3),
-            0x41 => self.eor(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x51 => self.eor(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0x55 => self.eor(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0x5D => self.eor(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0x59 => self.eor(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0x49 => {
+                let effective_address = self.resolve_address_immediate();
+                self.eor(bus, effective_address, 2, 2);
+            }
+            0x4D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.eor(bus, effective_address, 3, 4);
+            }
+            0x45 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.eor(bus, effective_address, 2, 3);
+            }
+            0x41 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.eor(bus, effective_address, 2, 6);
+            }
+            0x51 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.eor(bus, effective_address, 2, 5);
+            }
+            0x55 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.eor(bus, effective_address, 2, 4);
+            }
+            0x5D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.eor(bus, effective_address, 3, 4);
+            }
+            0x59 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.eor(bus, effective_address, 3, 4);
+            }
             // INC
-            0xEE => self.inc(bus, AddressingMode::Absolute, 3, 6),
-            0xE6 => self.inc(bus, AddressingMode::ZeroPage, 2, 5),
-            0xF6 => self.inc(bus, AddressingMode::IndexedZeroPageX, 2, 6),
-            0xFE => self.inc(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            0xEE => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.inc(bus, effective_address, 3, 6);
+            }
+            0xE6 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.inc(bus, effective_address, 2, 5);
+            }
+            0xF6 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.inc(bus, effective_address, 2, 6);
+            }
+            0xFE => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.inc(bus, effective_address, 3, 7);
+            }
             // INX
             0xE8 => self.inx(1, 2),
             // INY
             0xC8 => self.iny(1, 2),
             // JMP
-            0x4C => self.jmp(bus, AddressingMode::Absolute, 3),
-            0x6C => self.jmp(bus, AddressingMode::AbsoluteIndirect, 5),
+            0x4C => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.jmp(effective_address, 3)
+            }
+            0x6C => {
+                let effective_address = self.resolve_address_absolute_indirect(bus);
+                self.jmp(effective_address, 5)
+            }
             // JSR
-            0x20 => self.jsr(bus, AddressingMode::Absolute, 3, 6),
+            0x20 => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.jsr(bus, effective_address, 3, 6);
+            }
             // LDA
-            0xA9 => self.lda(bus, AddressingMode::Immediate, 2, 2),
-            0xAD => self.lda(bus, AddressingMode::Absolute, 3, 4),
-            0xA5 => self.lda(bus, AddressingMode::ZeroPage, 2, 3),
-            0xA1 => self.lda(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0xB1 => self.lda(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0xB5 => self.lda(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0xBD => self.lda(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0xB9 => self.lda(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0xA9 => {
+                let effective_address = self.resolve_address_immediate();
+                self.lda(bus, effective_address, 2, 2);
+            }
+            0xAD => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.lda(bus, effective_address, 3, 4);
+            }
+            0xA5 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.lda(bus, effective_address, 2, 3);
+            }
+            0xA1 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.lda(bus, effective_address, 2, 6);
+            }
+            0xB1 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.lda(bus, effective_address, 2, 5);
+            }
+            0xB5 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.lda(bus, effective_address, 2, 4);
+            }
+            0xBD => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.lda(bus, effective_address, 3, 4);
+            }
+            0xB9 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.lda(bus, effective_address, 3, 4);
+            }
             // LDX
-            0xA2 => self.ldx(bus, AddressingMode::Immediate, 2, 2),
-            0xAE => self.ldx(bus, AddressingMode::Absolute, 3, 4),
-            0xA6 => self.ldx(bus, AddressingMode::ZeroPage, 2, 3),
-            0xBE => self.ldx(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
-            0xB6 => self.ldx(bus, AddressingMode::IndexedZeroPageY, 2, 4),
+            0xA2 => {
+                let effective_address = self.resolve_address_immediate();
+                self.ldx(bus, effective_address, 2, 2);
+            }
+            0xAE => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ldx(bus, effective_address, 3, 4);
+            }
+            0xA6 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ldx(bus, effective_address, 2, 3);
+            }
+            0xBE => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.ldx(bus, effective_address, 3, 4);
+            }
+            0xB6 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.ldx(bus, effective_address, 2, 4);
+            }
             // LDY
-            0xA0 => self.ldy(bus, AddressingMode::Immediate, 2, 2),
-            0xAC => self.ldy(bus, AddressingMode::Absolute, 3, 4),
-            0xA4 => self.ldy(bus, AddressingMode::ZeroPage, 2, 3),
-            0xB4 => self.ldy(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0xBC => self.ldy(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
+            0xA0 => {
+                let effective_address = self.resolve_address_immediate();
+                self.ldy(bus, effective_address, 2, 2);
+            }
+            0xAC => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ldy(bus, effective_address, 3, 4);
+            }
+            0xA4 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ldy(bus, effective_address, 2, 3);
+            }
+            0xB4 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.ldy(bus, effective_address, 2, 4);
+            }
+            0xBC => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.ldy(bus, effective_address, 3, 4);
+            }
             // LSR
-            0x4E => self.lsr(bus, AddressingMode::Absolute, 3, 6),
-            0x46 => self.lsr(bus, AddressingMode::ZeroPage, 2, 5),
-            0x4A => self.lsr(bus, AddressingMode::Accumulator, 1, 2),
-            0x56 => self.lsr(bus, AddressingMode::IndexedZeroPageX, 2, 6),
-            0x5E => self.lsr(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            0x4E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.lsr(bus, Some(effective_address), 3, 6);
+            }
+            0x46 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.lsr(bus, Some(effective_address), 2, 5);
+            }
+            0x4A => {
+                // Accumulator addressing mode.
+                self.lsr(bus, None, 1, 2);
+            }
+            0x56 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.lsr(bus, Some(effective_address), 2, 6);
+            }
+            0x5E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.lsr(bus, Some(effective_address), 3, 7);
+            }
             // NOP
             0xEA => self.nop(1, 2),
             // ORA
-            0x09 => self.ora(bus, AddressingMode::Immediate, 2, 2),
-            0x0D => self.ora(bus, AddressingMode::Absolute, 3, 4),
-            0x05 => self.ora(bus, AddressingMode::ZeroPage, 2, 3),
-            0x01 => self.ora(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x11 => self.ora(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0x15 => self.ora(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0x1D => self.ora(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0x19 => self.ora(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0x09 => {
+                let effective_address = self.resolve_address_immediate();
+                self.ora(bus, effective_address, 2, 2);
+            }
+            0x0D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ora(bus, effective_address, 3, 4);
+            }
+            0x05 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ora(bus, effective_address, 2, 3);
+            }
+            0x01 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.ora(bus, effective_address, 2, 6);
+            }
+            0x11 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.ora(bus, effective_address, 2, 5);
+            }
+            0x15 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.ora(bus, effective_address, 2, 4);
+            }
+            0x1D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.ora(bus, effective_address, 3, 4);
+            }
+            0x19 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.ora(bus, effective_address, 3, 4);
+            }
             // PHA
             0x48 => self.pha(bus, 1, 3),
             // PHP
@@ -225,30 +471,84 @@ impl CPU {
             // PLP
             0x28 => self.plp(bus, 1, 4),
             // ROL
-            0x2E => self.rol(bus, AddressingMode::Absolute, 3, 6),
-            0x26 => self.rol(bus, AddressingMode::ZeroPage, 2, 5),
-            0x2A => self.rol(bus, AddressingMode::Accumulator, 1, 2),
-            0x36 => self.rol(bus, AddressingMode::IndexedZeroPageX, 2, 6),
-            0x3E => self.rol(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            0x2E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.rol(bus, Some(effective_address), 3, 6);
+            }
+            0x26 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.rol(bus, Some(effective_address), 2, 5);
+            }
+            0x2A => {
+                // Accumulator addressing mode.
+                self.rol(bus, None, 1, 2);
+            }
+            0x36 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.rol(bus, Some(effective_address), 2, 6);
+            }
+            0x3E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.rol(bus, Some(effective_address), 3, 7);
+            }
             // ROR
-            0x6E => self.ror(bus, AddressingMode::Absolute, 3, 6),
-            0x66 => self.ror(bus, AddressingMode::ZeroPage, 2, 5),
-            0x6A => self.ror(bus, AddressingMode::Accumulator, 1, 2),
-            0x76 => self.ror(bus, AddressingMode::IndexedZeroPageX, 2, 6),
-            0x7E => self.ror(bus, AddressingMode::IndexedAbsoluteX, 3, 7),
+            0x6E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ror(bus, Some(effective_address), 3, 6);
+            }
+            0x66 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ror(bus, Some(effective_address), 2, 5);
+            }
+            0x6A => {
+                // Accumulator addressing mode.
+                self.ror(bus, None, 1, 2);
+            }
+            0x76 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.ror(bus, Some(effective_address), 2, 6);
+            }
+            0x7E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.ror(bus, Some(effective_address), 3, 7);
+            }
             // RTI
             0x40 => self.rti(bus, 6),
             // RTS
             0x60 => self.rts(bus, 6),
             // SBC
-            0xE9 => self.sbc(bus, AddressingMode::Immediate, 2, 2),
-            0xED => self.sbc(bus, AddressingMode::Absolute, 3, 4),
-            0xE5 => self.sbc(bus, AddressingMode::ZeroPage, 2, 3),
-            0xE1 => self.sbc(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0xF1 => self.sbc(bus, AddressingMode::IndirectIndexedY, 2, 5),
-            0xF5 => self.sbc(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0xFD => self.sbc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
-            0xF9 => self.sbc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
+            0xE9 => {
+                let effective_address = self.resolve_address_immediate();
+                self.sbc(bus, effective_address, 2, 2);
+            }
+            0xED => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sbc(bus, effective_address, 3, 4);
+            }
+            0xE5 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sbc(bus, effective_address, 2, 3);
+            }
+            0xE1 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sbc(bus, effective_address, 2, 6);
+            }
+            0xF1 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.sbc(bus, effective_address, 2, 5);
+            }
+            0xF5 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sbc(bus, effective_address, 2, 4);
+            }
+            0xFD => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.sbc(bus, effective_address, 3, 4);
+            }
+            0xF9 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.sbc(bus, effective_address, 3, 4);
+            }
             // SEC
             0x38 => self.sec(1, 2),
             // SED
@@ -256,21 +556,60 @@ impl CPU {
             // SEI
             0x78 => self.sei(1, 2),
             // STA
-            0x8D => self.sta(bus, AddressingMode::Absolute, 3, 4),
-            0x85 => self.sta(bus, AddressingMode::ZeroPage, 2, 3),
-            0x81 => self.sta(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x91 => self.sta(bus, AddressingMode::IndirectIndexedY, 2, 6),
-            0x95 => self.sta(bus, AddressingMode::IndexedZeroPageX, 2, 4),
-            0x9D => self.sta(bus, AddressingMode::IndexedAbsoluteX, 3, 5),
-            0x99 => self.sta(bus, AddressingMode::IndexedAbsoluteY, 3, 5),
+            0x8D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sta(bus, effective_address, 3, 4);
+            }
+            0x85 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sta(bus, effective_address, 2, 3);
+            }
+            0x81 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sta(bus, effective_address, 2, 6);
+            }
+            0x91 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                self.sta(bus, effective_address, 2, 6);
+            }
+            0x95 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sta(bus, effective_address, 2, 4);
+            }
+            0x9D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                self.sta(bus, effective_address, 3, 5);
+            }
+            0x99 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                self.sta(bus, effective_address, 3, 5);
+            }
             // STX
-            0x8E => self.stx(bus, AddressingMode::Absolute, 3, 4),
-            0x86 => self.stx(bus, AddressingMode::ZeroPage, 2, 3),
-            0x96 => self.stx(bus, AddressingMode::IndexedZeroPageY, 2, 4),
+            0x8E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.stx(bus, effective_address, 3, 4);
+            }
+            0x86 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.stx(bus, effective_address, 2, 3);
+            }
+            0x96 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.stx(bus, effective_address, 2, 4);
+            }
             // STY
-            0x8C => self.sty(bus, AddressingMode::Absolute, 3, 4),
-            0x84 => self.sty(bus, AddressingMode::ZeroPage, 2, 3),
-            0x94 => self.sty(bus, AddressingMode::IndexedZeroPageX, 2, 4),
+            0x8C => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sty(bus, effective_address, 3, 4);
+            }
+            0x84 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sty(bus, effective_address, 2, 3);
+            }
+            0x94 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sty(bus, effective_address, 2, 4);
+            }
             // TAX
             0xAA => self.tax(1, 2),
             // TAY
@@ -294,60 +633,68 @@ impl CPU {
         a & 0xFF00 != b & 0xFF00
     }
 
-    fn resolve_address(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
-        match addr_mode {
-            AddressingMode::Immediate => self.pc + 1,
-            AddressingMode::Absolute => bus.read_word(self.pc + 1),
-            AddressingMode::ZeroPage => bus.read_byte(self.pc + 1) as u16,
-            AddressingMode::IndexedZeroPageX => {
-                let base_address = bus.read_byte(self.pc + 1);
-                base_address.wrapping_add(self.x) as u16
-            }
-            AddressingMode::IndexedZeroPageY => {
-                let base_address = bus.read_byte(self.pc + 1);
-                base_address.wrapping_add(self.y) as u16
-            }
-            AddressingMode::IndexedAbsoluteX => {
-                let base_address = bus.read_word(self.pc + 1);
-                let effective_address = base_address.wrapping_add(self.x as u16);
-                if CPU::crosses_page_boundary(base_address, effective_address) {
-                    self.total_cycles += 1;
-                }
-                effective_address
-            }
-            AddressingMode::IndexedAbsoluteY => {
-                let base_address = bus.read_word(self.pc + 1);
-                let effective_address = base_address.wrapping_add(self.y as u16);
-                if CPU::crosses_page_boundary(base_address, effective_address) {
-                    self.total_cycles += 1;
-                }
-                effective_address
-            }
-            AddressingMode::IndexedIndirectX => {
-                let base_address = bus.read_byte(self.pc + 1);
-                let indirect_address = base_address.wrapping_add(self.x) as u16;
-                bus.read_word(indirect_address)
-            }
-            AddressingMode::IndirectIndexedY => {
-                let indirect_address = bus.read_byte(self.pc + 1);
-                let base_address = bus.read_word(indirect_address as u16);
-                let effective_address = base_address.wrapping_add(self.y as u16);
-                if CPU::crosses_page_boundary(base_address, effective_address) {
-                    self.total_cycles += 1;
-                }
-                effective_address
-            }
-            AddressingMode::AbsoluteIndirect => {
-                let indirect_address = bus.read_word(self.pc + 1);
-                bus.read_word(indirect_address)
-            }
-            AddressingMode::Accumulator => {
-                panic!("Attempt to resolve address of accumulator register!")
-            }
-        }
+    fn resolve_address_immediate(&self) -> u16 {
+        self.pc + 1
     }
 
-    fn resolve_relative_address(&self, bus: &mut dyn Bus16) -> u16 {
+    fn resolve_address_absolute(&self, bus: &dyn Bus16) -> u16 {
+        bus.read_word(self.pc + 1)
+    }
+
+    fn resolve_address_zero_page(&self, bus: &dyn Bus16) -> u16 {
+        bus.read_byte(self.pc + 1) as u16
+    }
+
+    fn resolve_address_indexed_zero_page_x(&self, bus: &dyn Bus16) -> u16 {
+        let base_address = bus.read_byte(self.pc + 1);
+        base_address.wrapping_add(self.x) as u16
+    }
+
+    fn resolve_address_indexed_zero_page_y(&self, bus: &dyn Bus16) -> u16 {
+        let base_address = bus.read_byte(self.pc + 1);
+        base_address.wrapping_add(self.y) as u16
+    }
+
+    fn resolve_address_indexed_absolute_x(&mut self, bus: &dyn Bus16) -> u16 {
+        let base_address = bus.read_word(self.pc + 1);
+        let effective_address = base_address.wrapping_add(self.x as u16);
+        if CPU::crosses_page_boundary(base_address, effective_address) {
+            self.total_cycles += 1;
+        }
+        effective_address
+    }
+
+    fn resolve_address_indexed_absolute_y(&mut self, bus: &dyn Bus16) -> u16 {
+        let base_address = bus.read_word(self.pc + 1);
+        let effective_address = base_address.wrapping_add(self.y as u16);
+        if CPU::crosses_page_boundary(base_address, effective_address) {
+            self.total_cycles += 1;
+        }
+        effective_address
+    }
+
+    fn resolve_address_indexed_indirect_x(&self, bus: &dyn Bus16) -> u16 {
+        let base_address = bus.read_byte(self.pc + 1);
+        let indirect_address = base_address.wrapping_add(self.x) as u16;
+        bus.read_word(indirect_address)
+    }
+
+    fn resolve_address_indirect_indexed_y(&mut self, bus: &dyn Bus16) -> u16 {
+        let indirect_address = bus.read_byte(self.pc + 1);
+        let base_address = bus.read_word(indirect_address as u16);
+        let effective_address = base_address.wrapping_add(self.y as u16);
+        if CPU::crosses_page_boundary(base_address, effective_address) {
+            self.total_cycles += 1;
+        }
+        effective_address
+    }
+
+    fn resolve_address_absolute_indirect(&self, bus: &dyn Bus16) -> u16 {
+        let indirect_address = bus.read_word(self.pc + 1);
+        bus.read_word(indirect_address)
+    }
+
+    fn resolve_address_relative(&self, bus: &dyn Bus16) -> u16 {
         let offset = (bus.read_byte(self.pc + 1) as i8) as i16;
         self.pc.wrapping_add_signed(offset)
     }
@@ -362,12 +709,12 @@ impl CPU {
         self.push_byte(bus, ((value & 0x00FF) >> 0) as u8);
     }
 
-    fn pull_byte(&mut self, bus: &mut dyn Bus16) -> u8 {
+    fn pull_byte(&mut self, bus: &dyn Bus16) -> u8 {
         self.s = self.s.wrapping_add(1);
         bus.read_byte(Self::STACK_BASE + self.s as u16)
     }
 
-    fn pull_word(&mut self, bus: &mut dyn Bus16) -> u16 {
+    fn pull_word(&mut self, bus: &dyn Bus16) -> u16 {
         let l_byte = self.pull_byte(bus);
         let h_byte = self.pull_byte(bus);
         (h_byte as u16) << 8 | (l_byte as u16)
@@ -418,7 +765,7 @@ impl CPU {
     }
 
     // Operation PLA: Pull accumulator from stack.
-    fn pla(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn pla(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.a = self.pull_byte(bus);
         self.set_nz_flags(self.a);
 
@@ -427,7 +774,7 @@ impl CPU {
     }
 
     // Operation PLP: Pull processor status from stack.
-    fn plp(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn plp(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         let p = self.pull_byte(bus);
         self.decode_p(p);
 
@@ -436,8 +783,7 @@ impl CPU {
     }
 
     // Operation JSR: Jump to subroutine.
-    fn jsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let jmp_address = self.resolve_address(bus, addr_mode);
+    fn jsr(&mut self, bus: &mut dyn Bus16, jmp_address: u16, length: u16, cycles: u64) {
         self.push_word(bus, self.pc + length - 1);
 
         self.pc = jmp_address;
@@ -445,7 +791,7 @@ impl CPU {
     }
 
     // Operation RTS: Return from subroutine.
-    fn rts(&mut self, bus: &mut dyn Bus16, cycles: u64) {
+    fn rts(&mut self, bus: &dyn Bus16, cycles: u64) {
         let jmp_address = self.pull_word(bus);
 
         self.pc = jmp_address + 1;
@@ -465,7 +811,7 @@ impl CPU {
     }
 
     // Operation RTI: Return from interrupt.
-    fn rti(&mut self, bus: &mut dyn Bus16, cycles: u64) {
+    fn rti(&mut self, bus: &dyn Bus16, cycles: u64) {
         let p = self.pull_byte(bus);
         self.decode_p(p);
         let return_address = self.pull_word(bus);
@@ -474,7 +820,7 @@ impl CPU {
         self.total_cycles += cycles;
     }
 
-    fn adder(&mut self, rhs: u8, lhs: u8, carry: bool) -> (u8, bool, bool) {
+    fn adder(rhs: u8, lhs: u8, carry: bool) -> (u8, bool, bool) {
         let (sum, carry1) = rhs.overflowing_add(lhs);
         let (sum, carry2) = sum.overflowing_add(carry as u8);
         (
@@ -485,15 +831,13 @@ impl CPU {
     }
 
     // Operation ADC: Add memory to accumulator with carry.
-    fn adc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn adc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         if self.decimal_mode {
             panic!("ADC: decimal mode not yet implemented!");
         }
 
-        let address = self.resolve_address(bus, addr_mode);
         let value = bus.read_byte(address);
-
-        let (sum, carry, overflow) = self.adder(self.a, value, self.carry);
+        let (sum, carry, overflow) = CPU::adder(self.a, value, self.carry);
         self.a = sum;
         self.carry = carry;
         self.overflow = overflow;
@@ -504,15 +848,13 @@ impl CPU {
     }
 
     // Operation SBC: Subtract memory from accumulator with borrow.
-    fn sbc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
+    fn sbc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         if self.decimal_mode {
             panic!("SBC: decimal mode not yet implemented!");
         }
 
-        let address = self.resolve_address(bus, addr_mode);
         let value = bus.read_byte(address);
-
-        let (sum, carry, overflow) = self.adder(self.a, !value, self.carry);
+        let (sum, carry, overflow) = CPU::adder(self.a, !value, self.carry);
         self.a = sum;
         self.carry = carry;
         self.overflow = overflow;
@@ -523,8 +865,7 @@ impl CPU {
     }
 
     // Operation AND: "AND" memory with accumulator.
-    fn and(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn and(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = self.a & value;
         self.set_nz_flags(self.a);
@@ -534,8 +875,7 @@ impl CPU {
     }
 
     // Operation ORA: "OR" memory with accumulator.
-    fn ora(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn ora(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = self.a | value;
         self.set_nz_flags(self.a);
@@ -545,8 +885,7 @@ impl CPU {
     }
 
     // Operation EOR: "XOR" memory with accumulator.
-    fn eor(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn eor(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = self.a ^ value;
         self.set_nz_flags(self.a);
@@ -556,8 +895,7 @@ impl CPU {
     }
 
     // Operation BIT: Test bits in memory with accumulator.
-    fn bit(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn bit(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.zero = self.a & value == 0;
         self.negative = value & 0b10000000 != 0;
@@ -568,27 +906,19 @@ impl CPU {
     }
 
     // Operation ASL: Shift left one bit (memory or accumulator).
-    fn asl(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let value = match addr_mode {
-            AddressingMode::Accumulator => self.a,
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.read_byte(address)
-            }
+    fn asl(&mut self, bus: &mut dyn Bus16, address: Option<u16>, length: u16, cycles: u64) {
+        let value = match address {
+            Some(address) => bus.read_byte(address),
+            None => self.a,
         };
 
         let result = value << 1;
         self.set_nz_flags(result);
         self.carry = value & (1 << 7) != 0;
 
-        match addr_mode {
-            AddressingMode::Accumulator => {
-                self.a = result;
-            }
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.write_byte(address, result);
-            }
+        match address {
+            Some(address) => bus.write_byte(address, result),
+            None => self.a = result,
         }
 
         self.pc += length;
@@ -596,27 +926,19 @@ impl CPU {
     }
 
     // Operation LSR: Shift right one bit (memory or accumulator).
-    fn lsr(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let value = match addr_mode {
-            AddressingMode::Accumulator => self.a,
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.read_byte(address)
-            }
+    fn lsr(&mut self, bus: &mut dyn Bus16, address: Option<u16>, length: u16, cycles: u64) {
+        let value = match address {
+            Some(address) => bus.read_byte(address),
+            None => self.a,
         };
 
         let result = value >> 1;
         self.set_nz_flags(result);
         self.carry = value & (1 << 0) != 0;
 
-        match addr_mode {
-            AddressingMode::Accumulator => {
-                self.a = result;
-            }
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.write_byte(address, result);
-            }
+        match address {
+            Some(address) => bus.write_byte(address, result),
+            None => self.a = result,
         }
 
         self.pc += length;
@@ -624,27 +946,19 @@ impl CPU {
     }
 
     // Operation ROL: Rotate left one bit (memory or accumulator).
-    fn rol(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let value = match addr_mode {
-            AddressingMode::Accumulator => self.a,
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.read_byte(address)
-            }
+    fn rol(&mut self, bus: &mut dyn Bus16, address: Option<u16>, length: u16, cycles: u64) {
+        let value = match address {
+            Some(address) => bus.read_byte(address),
+            None => self.a,
         };
 
         let result = value.rotate_left(1) & 0b11111110 | (self.carry as u8) << 0;
         self.carry = value & (1 << 7) != 0;
         self.set_nz_flags(result);
 
-        match addr_mode {
-            AddressingMode::Accumulator => {
-                self.a = result;
-            }
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.write_byte(address, result);
-            }
+        match address {
+            Some(address) => bus.write_byte(address, result),
+            None => self.a = result,
         }
 
         self.pc += length;
@@ -652,27 +966,19 @@ impl CPU {
     }
 
     // Operation ROR: Rotate right one bit (memory or accumulator).
-    fn ror(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let value = match addr_mode {
-            AddressingMode::Accumulator => self.a,
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.read_byte(address)
-            }
+    fn ror(&mut self, bus: &mut dyn Bus16, address: Option<u16>, length: u16, cycles: u64) {
+        let value = match address {
+            Some(address) => bus.read_byte(address),
+            None => self.a,
         };
 
         let result = value.rotate_right(1) & 0b01111111 | (self.carry as u8) << 7;
         self.carry = value & (1 << 0) != 0;
         self.set_nz_flags(result);
 
-        match addr_mode {
-            AddressingMode::Accumulator => {
-                self.a = result;
-            }
-            _ => {
-                let address = self.resolve_address(bus, addr_mode);
-                bus.write_byte(address, result);
-            }
+        match address {
+            Some(address) => bus.write_byte(address, result),
+            None => self.a = result,
         }
 
         self.pc += length;
@@ -680,16 +986,14 @@ impl CPU {
     }
 
     // Operation JMP: Jump to new location.
-    fn jmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, cycles: u64) {
-        let jmp_address = self.resolve_address(bus, addr_mode);
-
+    fn jmp(&mut self, jmp_address: u16, cycles: u64) {
         self.pc = jmp_address;
         self.total_cycles += cycles;
     }
 
-    fn relative_conditional_branch(&mut self, bus: &mut dyn Bus16, should_branch: bool) {
+    fn relative_conditional_branch(&mut self, bus: &dyn Bus16, should_branch: bool) {
         if should_branch {
-            let target_address = self.resolve_relative_address(bus);
+            let target_address = self.resolve_address_relative(bus);
             if CPU::crosses_page_boundary(self.pc, target_address) {
                 self.total_cycles += 2;
             } else {
@@ -700,7 +1004,7 @@ impl CPU {
     }
 
     // Operation BEQ: Branch on result zero.
-    fn beq(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn beq(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, self.zero);
 
         self.pc += length;
@@ -708,7 +1012,7 @@ impl CPU {
     }
 
     // Operation BNE: Branch on result not zero.
-    fn bne(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bne(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, !self.zero);
 
         self.pc += length;
@@ -716,7 +1020,7 @@ impl CPU {
     }
 
     // Operation BCC: Branch on carry clear.
-    fn bcc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bcc(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, !self.carry);
 
         self.pc += length;
@@ -724,7 +1028,7 @@ impl CPU {
     }
 
     // Operation BCS: Branch on carry set.
-    fn bcs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bcs(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, self.carry);
 
         self.pc += length;
@@ -732,7 +1036,7 @@ impl CPU {
     }
 
     // Operation BVC: Branch on overflow clear.
-    fn bvc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bvc(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, !self.overflow);
 
         self.pc += length;
@@ -740,7 +1044,7 @@ impl CPU {
     }
 
     // Operation BVS: Branch on overflow set.
-    fn bvs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bvs(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, self.overflow);
 
         self.pc += length;
@@ -748,7 +1052,7 @@ impl CPU {
     }
 
     // Operation BMI: Branch on result minus.
-    fn bmi(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bmi(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, self.negative);
 
         self.pc += length;
@@ -756,7 +1060,7 @@ impl CPU {
     }
 
     // Operation BPL: Branch on result plus.
-    fn bpl(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
+    fn bpl(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
         self.relative_conditional_branch(bus, !self.negative);
 
         self.pc += length;
@@ -785,10 +1089,8 @@ impl CPU {
     }
 
     // Operation CMP: Compare memory and accumulator.
-    fn cmp(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn cmp(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
-
         self.compare_value(self.a, value);
 
         self.pc += length;
@@ -796,10 +1098,8 @@ impl CPU {
     }
 
     // Operation CPX: Compare memory and index X.
-    fn cpx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn cpx(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
-
         self.compare_value(self.x, value);
 
         self.pc += length;
@@ -807,10 +1107,8 @@ impl CPU {
     }
 
     // Operation CPY: Compare memory and index Y.
-    fn cpy(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn cpy(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
-
         self.compare_value(self.y, value);
 
         self.pc += length;
@@ -818,8 +1116,7 @@ impl CPU {
     }
 
     // Operation INC: Increment memory by one.
-    fn inc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn inc(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         let result = value.wrapping_add(1);
         self.set_nz_flags(result);
@@ -830,8 +1127,7 @@ impl CPU {
     }
 
     // Operation DEC: Decrement memory by one.
-    fn dec(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn dec(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         let result = value.wrapping_sub(1);
         self.set_nz_flags(result);
@@ -878,8 +1174,7 @@ impl CPU {
     }
 
     // Operation LDA: Load accumulator with memory.
-    fn lda(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn lda(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.a = bus.read_byte(address);
         self.set_nz_flags(self.a);
 
@@ -888,8 +1183,7 @@ impl CPU {
     }
 
     // Operation LDX: Load index X with memory.
-    fn ldx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn ldx(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.x = bus.read_byte(address);
         self.set_nz_flags(self.x);
 
@@ -898,8 +1192,7 @@ impl CPU {
     }
 
     // Operation LDY: Load index Y with memory.
-    fn ldy(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn ldy(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.y = bus.read_byte(address);
         self.set_nz_flags(self.y);
 
@@ -908,8 +1201,7 @@ impl CPU {
     }
 
     // Operation STA: Store accumulator in memory.
-    fn sta(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn sta(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         bus.write_byte(address, self.a);
 
         self.pc += length;
@@ -917,8 +1209,7 @@ impl CPU {
     }
 
     // Operation STX: Store index X in memory.
-    fn stx(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn stx(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         bus.write_byte(address, self.x);
 
         self.pc += length;
@@ -926,8 +1217,7 @@ impl CPU {
     }
 
     // Operation STY: Store index Y in memory.
-    fn sty(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        let address = self.resolve_address(bus, addr_mode);
+    fn sty(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         bus.write_byte(address, self.y);
 
         self.pc += length;
