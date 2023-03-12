@@ -335,8 +335,7 @@ impl CPU {
     }
 
     fn resolve_relative_offset(&self, bus: &mut dyn Bus16) -> i16 {
-        let offset: i8 = unsafe { std::mem::transmute(bus.read_byte(self.pc + 1)) };
-        offset as i16
+        (bus.read_byte(self.pc + 1) as i8) as i16
     }
 
     fn push_byte(&mut self, bus: &mut dyn Bus16, value: u8) {
