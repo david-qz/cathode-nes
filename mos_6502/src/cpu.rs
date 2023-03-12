@@ -595,7 +595,14 @@ impl CPU {
     }
 
     fn dec(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'DEC'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+        let result = value.wrapping_sub(1);
+        self.set_nz_flags(result);
+        bus.write_byte(address, result);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn dex(&mut self, length: u16, cycles: u64) {
@@ -625,7 +632,14 @@ impl CPU {
     }
 
     fn inc(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'INC'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+        let result = value.wrapping_add(1);
+        self.set_nz_flags(result);
+        bus.write_byte(address, result);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn inx(&mut self, length: u16, cycles: u64) {
