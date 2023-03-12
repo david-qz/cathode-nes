@@ -394,7 +394,13 @@ impl CPU {
     }
 
     fn and(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
-        panic!("Unimplemented opcode 'AND'");
+        let address = self.resolve_address(bus, addr_mode);
+        let value = bus.read_byte(address);
+        self.a = self.a & value;
+        self.set_nz_flags(self.a);
+
+        self.pc += length;
+        self.total_cycles += cycles;
     }
 
     fn asl(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode, length: u16, cycles: u64) {
