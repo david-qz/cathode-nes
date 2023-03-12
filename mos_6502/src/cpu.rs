@@ -347,8 +347,9 @@ impl CPU {
         }
     }
 
-    fn resolve_relative_offset(&self, bus: &mut dyn Bus16) -> i16 {
-        (bus.read_byte(self.pc + 1) as i8) as i16
+    fn resolve_relative_address(&self, bus: &mut dyn Bus16) -> u16 {
+        let offset = (bus.read_byte(self.pc + 1) as i8) as i16;
+        self.pc.wrapping_add_signed(offset)
     }
 
     fn push_byte(&mut self, bus: &mut dyn Bus16, value: u8) {
@@ -688,8 +689,13 @@ impl CPU {
 
     fn relative_conditional_branch(&mut self, bus: &mut dyn Bus16, should_branch: bool) {
         if should_branch {
-            let offset = self.resolve_relative_offset(bus);
-            self.pc = self.pc.wrapping_add_signed(offset);
+            let target_address = self.resolve_relative_address(bus);
+            if CPU::crosses_page_boundary(self.pc, target_address) {
+                self.total_cycles += 2;
+            } else {
+                self.total_cycles += 1;
+            }
+            self.pc = target_address;
         }
     }
 
