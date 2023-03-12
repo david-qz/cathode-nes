@@ -11,7 +11,7 @@ enum AddressingMode {
     IndexedAbsoluteX,
     IndexedAbsoluteY,
     IndexedIndirectX,
-    IndexedIndirectY,
+    IndirectIndexedY,
     AbsoluteIndirect,
 }
 
@@ -81,7 +81,7 @@ impl CPU {
             0x6D => self.adc(bus, AddressingMode::Absolute, 3, 4),
             0x65 => self.adc(bus, AddressingMode::ZeroPage, 2, 3),
             0x61 => self.adc(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x71 => self.adc(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x71 => self.adc(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0x75 => self.adc(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0x7D => self.adc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0x79 => self.adc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -90,7 +90,7 @@ impl CPU {
             0x2D => self.and(bus, AddressingMode::Absolute, 3, 4),
             0x25 => self.and(bus, AddressingMode::ZeroPage, 2, 3),
             0x21 => self.and(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x31 => self.and(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x31 => self.and(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0x35 => self.and(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0x3D => self.and(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0x39 => self.and(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -134,7 +134,7 @@ impl CPU {
             0xCD => self.cmp(bus, AddressingMode::Absolute, 3, 4),
             0xC5 => self.cmp(bus, AddressingMode::ZeroPage, 2, 3),
             0xC1 => self.cmp(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0xD1 => self.cmp(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0xD1 => self.cmp(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0xD5 => self.cmp(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0xDD => self.cmp(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0xD9 => self.cmp(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -160,7 +160,7 @@ impl CPU {
             0x4D => self.eor(bus, AddressingMode::Absolute, 3, 4),
             0x45 => self.eor(bus, AddressingMode::ZeroPage, 2, 3),
             0x41 => self.eor(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x51 => self.eor(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x51 => self.eor(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0x55 => self.eor(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0x5D => self.eor(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0x59 => self.eor(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -183,7 +183,7 @@ impl CPU {
             0xAD => self.lda(bus, AddressingMode::Absolute, 3, 4),
             0xA5 => self.lda(bus, AddressingMode::ZeroPage, 2, 3),
             0xA1 => self.lda(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0xB1 => self.lda(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0xB1 => self.lda(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0xB5 => self.lda(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0xBD => self.lda(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0xB9 => self.lda(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -212,7 +212,7 @@ impl CPU {
             0x0D => self.ora(bus, AddressingMode::Absolute, 3, 4),
             0x05 => self.ora(bus, AddressingMode::ZeroPage, 2, 3),
             0x01 => self.ora(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x11 => self.ora(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0x11 => self.ora(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0x15 => self.ora(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0x1D => self.ora(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0x19 => self.ora(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -245,7 +245,7 @@ impl CPU {
             0xED => self.sbc(bus, AddressingMode::Absolute, 3, 4),
             0xE5 => self.sbc(bus, AddressingMode::ZeroPage, 2, 3),
             0xE1 => self.sbc(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0xF1 => self.sbc(bus, AddressingMode::IndexedIndirectY, 2, 5),
+            0xF1 => self.sbc(bus, AddressingMode::IndirectIndexedY, 2, 5),
             0xF5 => self.sbc(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0xFD => self.sbc(bus, AddressingMode::IndexedAbsoluteX, 3, 4),
             0xF9 => self.sbc(bus, AddressingMode::IndexedAbsoluteY, 3, 4),
@@ -259,7 +259,7 @@ impl CPU {
             0x8D => self.sta(bus, AddressingMode::Absolute, 3, 4),
             0x85 => self.sta(bus, AddressingMode::ZeroPage, 2, 3),
             0x81 => self.sta(bus, AddressingMode::IndexedIndirectX, 2, 6),
-            0x91 => self.sta(bus, AddressingMode::IndexedIndirectY, 2, 6),
+            0x91 => self.sta(bus, AddressingMode::IndirectIndexedY, 2, 6),
             0x95 => self.sta(bus, AddressingMode::IndexedZeroPageX, 2, 4),
             0x9D => self.sta(bus, AddressingMode::IndexedAbsoluteX, 3, 5),
             0x99 => self.sta(bus, AddressingMode::IndexedAbsoluteY, 3, 5),
@@ -300,12 +300,12 @@ impl CPU {
             AddressingMode::Absolute => bus.read_word(self.pc + 1),
             AddressingMode::ZeroPage => bus.read_byte(self.pc + 1) as u16,
             AddressingMode::IndexedZeroPageX => {
-                let base_address_zero_page = bus.read_byte(self.pc + 1);
-                base_address_zero_page.wrapping_add(self.x) as u16
+                let base_address = bus.read_byte(self.pc + 1);
+                base_address.wrapping_add(self.x) as u16
             }
             AddressingMode::IndexedZeroPageY => {
-                let base_address_zero_page = bus.read_byte(self.pc + 1);
-                base_address_zero_page.wrapping_add(self.y) as u16
+                let base_address = bus.read_byte(self.pc + 1);
+                base_address.wrapping_add(self.y) as u16
             }
             AddressingMode::IndexedAbsoluteX => {
                 let base_address = bus.read_word(self.pc + 1);
@@ -324,13 +324,13 @@ impl CPU {
                 effective_address
             }
             AddressingMode::IndexedIndirectX => {
-                let indirect_base_address_zero_page = bus.read_byte(self.pc + 1);
-                let indirect_address = indirect_base_address_zero_page.wrapping_add(self.x) as u16;
+                let base_address = bus.read_byte(self.pc + 1);
+                let indirect_address = base_address.wrapping_add(self.x) as u16;
                 bus.read_word(indirect_address)
             }
-            AddressingMode::IndexedIndirectY => {
-                let indirect_address_zero_page = bus.read_byte(self.pc + 1);
-                let base_address = bus.read_word(indirect_address_zero_page as u16);
+            AddressingMode::IndirectIndexedY => {
+                let indirect_address = bus.read_byte(self.pc + 1);
+                let base_address = bus.read_word(indirect_address as u16);
                 let effective_address = base_address.wrapping_add(self.y as u16);
                 if CPU::crosses_page_boundary(base_address, effective_address) {
                     self.total_cycles += 1;
