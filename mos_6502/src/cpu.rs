@@ -13,8 +13,6 @@ enum AddressingMode {
     IndexedIndirectX,
     IndexedIndirectY,
     AbsoluteIndirect,
-    Relative,
-    Implied,
 }
 
 /// A MOS 6502 CPU
@@ -332,12 +330,6 @@ impl CPU {
             }
             AddressingMode::Accumulator => {
                 panic!("Attempt to resolve address of accumulator register!")
-            }
-            AddressingMode::Implied => {
-                panic!("Attempt to resolve address in implied addressing mode!")
-            }
-            AddressingMode::Relative => {
-                panic!("Attempt to resolve address in relative addressing mode!")
             }
         }
     }
