@@ -41,12 +41,20 @@ fn klaus_functional_test_no_decimal() {
     }
 
     match last_pc {
-        Some(0x336D) => return,
+        Some(0x336D) => (),
         Some(pc) => panic!(
             "CPU trapped at PC={:X} in test={}",
             pc,
             memory.read_byte(0x200)
         ),
         None => panic!("The CPU didn't run."),
-    }
+    };
+
+    // NOTE: This cycle count may or may not be correct. This assertion mainly exists to guard against accidentally
+    //       regressing the emulator's timings. It may need to be updated if accuracy is improved.
+    let expected_cycles = 84_030_434;
+    assert_eq!(
+        cpu.total_cycles, expected_cycles,
+        "CPU completed test in unexpected number of cycles."
+    );
 }
