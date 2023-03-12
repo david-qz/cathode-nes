@@ -289,7 +289,12 @@ impl CPU {
         self.total_cycles - cycles_at_start
     }
 
-    fn resolve_address(&self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
+    #[inline(always)]
+    fn crosses_page_boundary(a: u16, b: u16) -> bool {
+        a & 0xFF00 != b & 0xFF00
+    }
+
+    fn resolve_address(&mut self, bus: &mut dyn Bus16, addr_mode: AddressingMode) -> u16 {
         match addr_mode {
             AddressingMode::Immediate => self.pc + 1,
             AddressingMode::Absolute => bus.read_word(self.pc + 1),
@@ -304,11 +309,19 @@ impl CPU {
             }
             AddressingMode::IndexedAbsoluteX => {
                 let base_address = bus.read_word(self.pc + 1);
-                base_address.wrapping_add(self.x as u16)
+                let effective_address = base_address.wrapping_add(self.x as u16);
+                if CPU::crosses_page_boundary(base_address, effective_address) {
+                    self.total_cycles += 1;
+                }
+                effective_address
             }
             AddressingMode::IndexedAbsoluteY => {
                 let base_address = bus.read_word(self.pc + 1);
-                base_address.wrapping_add(self.y as u16)
+                let effective_address = base_address.wrapping_add(self.y as u16);
+                if CPU::crosses_page_boundary(base_address, effective_address) {
+                    self.total_cycles += 1;
+                }
+                effective_address
             }
             AddressingMode::IndexedIndirectX => {
                 let indirect_base_address_zero_page = bus.read_byte(self.pc + 1);
@@ -318,7 +331,11 @@ impl CPU {
             AddressingMode::IndexedIndirectY => {
                 let indirect_address_zero_page = bus.read_byte(self.pc + 1);
                 let base_address = bus.read_word(indirect_address_zero_page as u16);
-                base_address.wrapping_add(self.y as u16)
+                let effective_address = base_address.wrapping_add(self.y as u16);
+                if CPU::crosses_page_boundary(base_address, effective_address) {
+                    self.total_cycles += 1;
+                }
+                effective_address
             }
             AddressingMode::AbsoluteIndirect => {
                 let indirect_address = bus.read_word(self.pc + 1);
