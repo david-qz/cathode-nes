@@ -32,12 +32,12 @@ fn klaus_functional_test_no_decimal() {
     let mut last_pc = None;
     loop {
         cpu.execute_instruction(&mut memory);
-        let current_pc = Some(cpu.pc());
+        let current_pc = Some(cpu.pc);
 
         if last_pc == current_pc {
             break;
         }
-        last_pc = Some(cpu.pc());
+        last_pc = Some(cpu.pc);
     }
 
     match last_pc {

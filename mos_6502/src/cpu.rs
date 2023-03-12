@@ -17,21 +17,21 @@ enum AddressingMode {
 
 /// A MOS 6502 CPU
 pub struct CPU {
-    a: u8,
-    x: u8,
-    y: u8,
+    pub a: u8,
+    pub x: u8,
+    pub y: u8,
 
-    pc: u16,
-    s: u8,
+    pub pc: u16,
+    pub s: u8,
 
-    carry: bool,
-    zero: bool,
-    irq_disable: bool,
-    decimal_mode: bool,
-    overflow: bool,
-    negative: bool,
+    pub carry: bool,
+    pub zero: bool,
+    pub irq_disable: bool,
+    pub decimal_mode: bool,
+    pub overflow: bool,
+    pub negative: bool,
 
-    total_cycles: u64,
+    pub total_cycles: u64,
     initialized: bool,
 }
 
@@ -64,10 +64,6 @@ impl CPU {
         self.pc = bus.read_word(Self::RESET_VECTOR);
         self.irq_disable = true;
         self.total_cycles += 6;
-    }
-
-    pub fn pc(&self) -> u16 {
-        self.pc
     }
 
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
