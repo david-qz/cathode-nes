@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::{cell::Cell, fmt::Debug};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Mnemonic {
@@ -411,6 +411,30 @@ impl Instruction {
         }
     }
 }
+
+impl std::fmt::Debug for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{ ")?;
+        std::fmt::Display::fmt(&self, f)?;
+        write!(f, " }}")
+    }
+}
+
+impl PartialEq for Instruction {
+    fn eq(&self, other: &Self) -> bool {
+        match self.length() {
+            1 => self.opcode == other.opcode,
+            2 => self.opcode == other.opcode && self.operand1 == other.operand1,
+            3 => {
+                self.opcode == other.opcode
+                    && self.operand1 == other.operand1
+                    && self.operand2 == other.operand2
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+impl Eq for Instruction {}
 
 impl std::fmt::Display for Mnemonic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

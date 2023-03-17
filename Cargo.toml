@@ -1,5 +1,6 @@
 [workspace]
 
 members = [
-    "mos_6502"
+    "mos_6502",
+    "nes"
 ]

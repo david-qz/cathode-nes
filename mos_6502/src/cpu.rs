@@ -1,4 +1,7 @@
-use crate::{debugging::Debugger, memory::Bus16};
+use crate::{
+    debugging::{Debugger, ExecutionState},
+    memory::Bus16,
+};
 use std::{cell::RefCell, rc::Rc};
 
 /// A MOS 6502 CPU
@@ -52,6 +55,10 @@ impl CPU {
 
     pub fn detach_debugger(&mut self) {
         self.debugger = None;
+    }
+
+    pub fn current_state(&self, bus: &dyn Bus16) -> ExecutionState {
+        ExecutionState::new(self, bus)
     }
 
     pub fn status_register(&self) -> u8 {

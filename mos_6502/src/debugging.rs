@@ -32,6 +32,7 @@ impl Debugger {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExecutionState {
     pub next_instruction: Instruction,
     pub a: u8,
