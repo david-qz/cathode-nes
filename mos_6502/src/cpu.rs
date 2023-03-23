@@ -832,6 +832,7 @@ impl CPU {
 
     // Operation ADC: Add memory to accumulator with carry.
     fn adc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+        #[cfg(feature = "decimal_mode")]
         if self.decimal_mode {
             panic!("ADC: decimal mode not yet implemented!");
         }
@@ -849,6 +850,7 @@ impl CPU {
 
     // Operation SBC: Subtract memory from accumulator with borrow.
     fn sbc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+        #[cfg(feature = "decimal_mode")]
         if self.decimal_mode {
             panic!("SBC: decimal mode not yet implemented!");
         }
