@@ -12,6 +12,7 @@ fn two_plus_two() {
     memory.load_code(&program, 0, Some(0));
 
     let mut cpu = CPU::new();
+    cpu.reset(&mut memory);
     for _ in 0..3 {
         cpu.execute_instruction(&mut memory);
     }
@@ -28,27 +29,26 @@ fn klaus_functional_test_no_decimal() {
     memory.load_code(&bin, 0, Some(0x400));
 
     let mut cpu = CPU::new();
+    cpu.reset(&mut memory);
 
-    let mut last_pc = None;
+    let mut last_pc = cpu.pc;
     loop {
         cpu.execute_instruction(&mut memory);
-        let current_pc = Some(cpu.pc);
+        let current_pc = cpu.pc;
 
         if last_pc == current_pc {
             break;
         }
-        last_pc = Some(cpu.pc);
+        last_pc = cpu.pc;
     }
 
-    match last_pc {
-        Some(0x336D) => (),
-        Some(pc) => panic!(
+    if last_pc != 0x336D {
+        panic!(
             "CPU trapped at PC={:X} in test={}",
-            pc,
+            last_pc,
             memory.read_byte(0x200)
-        ),
-        None => panic!("The CPU didn't run."),
-    };
+        );
+    }
 
     // NOTE: This cycle count may or may not be correct. This assertion mainly exists to guard against accidentally
     //       regressing the emulator's timings. It may need to be updated if accuracy is improved.

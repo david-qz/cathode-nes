@@ -14,6 +14,7 @@ fn klaus_functional_test_no_decimal_bench(c: &mut Criterion) {
         b.iter(|| {
             memory.load_code(&bin, 0, Some(0x400));
             let mut cpu = CPU::new();
+            cpu.reset(&mut memory);
             while cpu.pc != 0x336D {
                 cpu.execute_instruction(&mut memory);
             }

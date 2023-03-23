@@ -17,7 +17,6 @@ pub struct CPU {
     pub negative: bool,
 
     pub total_cycles: u64,
-    initialized: bool,
 }
 
 impl CPU {
@@ -36,12 +35,11 @@ impl CPU {
             s: 0,
             carry: false,
             zero: false,
-            irq_disable: false,
+            irq_disable: true,
             decimal_mode: false,
             overflow: false,
             negative: false,
             total_cycles: 0,
-            initialized: false,
         }
     }
 
@@ -52,11 +50,6 @@ impl CPU {
     }
 
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
-        if !self.initialized {
-            self.reset(bus);
-            self.initialized = true;
-        }
-
         let cycles_at_start = self.total_cycles;
 
         let opcode = bus.read_byte(self.pc);
