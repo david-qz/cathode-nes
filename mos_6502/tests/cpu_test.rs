@@ -1,4 +1,5 @@
-use mos_6502::{cpu::CPU, memory::Bus16, memory::FlatMemory};
+use mos_6502::{cpu::CPU, debugging::Debugger, memory::Bus16, memory::FlatMemory};
+use std::{cell::RefCell, rc::Rc};
 
 #[test]
 fn two_plus_two() {
@@ -31,6 +32,9 @@ fn klaus_functional_test_no_decimal() {
     let mut cpu = CPU::new();
     cpu.reset(&mut memory);
 
+    let debugger = Rc::new(RefCell::new(Debugger::new(None)));
+    cpu.attach_debugger(Rc::clone(&debugger));
+
     let mut last_pc = cpu.pc;
     loop {
         cpu.execute_instruction(&mut memory);
@@ -43,6 +47,7 @@ fn klaus_functional_test_no_decimal() {
     }
 
     if last_pc != 0x336D {
+        debugger.borrow().dump_backtrace();
         panic!(
             "CPU trapped at PC={:X} in test={}",
             last_pc,

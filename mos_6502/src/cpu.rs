@@ -1,4 +1,5 @@
-use crate::memory::Bus16;
+use crate::{debugging::Debugger, memory::Bus16};
+use std::{cell::RefCell, rc::Rc};
 
 /// A MOS 6502 CPU
 pub struct CPU {
@@ -17,6 +18,7 @@ pub struct CPU {
     pub negative: bool,
 
     pub total_cycles: u64,
+    debugger: Option<Rc<RefCell<Debugger>>>,
 }
 
 impl CPU {
@@ -40,7 +42,20 @@ impl CPU {
             overflow: false,
             negative: false,
             total_cycles: 0,
+            debugger: None,
         }
+    }
+
+    pub fn attach_debugger(&mut self, debugger: Rc<RefCell<Debugger>>) {
+        self.debugger = Some(debugger);
+    }
+
+    pub fn detach_debugger(&mut self) {
+        self.debugger = None;
+    }
+
+    pub fn status_register(&self) -> u8 {
+        self.encode_p(false)
     }
 
     pub fn reset(&mut self, bus: &dyn Bus16) {
@@ -50,6 +65,10 @@ impl CPU {
     }
 
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
+        if let Some(debugger) = &self.debugger {
+            debugger.borrow_mut().record_state(&self, bus);
+        }
+
         let cycles_at_start = self.total_cycles;
 
         let opcode = bus.read_byte(self.pc);
