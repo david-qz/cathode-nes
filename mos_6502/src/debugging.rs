@@ -1,10 +1,5 @@
+use crate::{cpu::CPU, disassembly::Instruction, memory::Bus16};
 use std::collections::VecDeque;
-
-use crate::{
-    cpu::CPU,
-    disassembly::{Disassembler, Instruction},
-    memory::Bus16,
-};
 
 pub struct Debugger {
     states: VecDeque<ExecutionState>,
@@ -15,17 +10,19 @@ impl Debugger {
     const DEFAULT_BACKTRACE_LIMIT: usize = 20;
 
     pub fn new(backtrace_limit: Option<usize>) -> Self {
+        let limit = backtrace_limit.unwrap_or(Self::DEFAULT_BACKTRACE_LIMIT);
+
         Self {
-            states: VecDeque::new(),
-            backtrace_limit: backtrace_limit.unwrap_or(Self::DEFAULT_BACKTRACE_LIMIT),
+            states: VecDeque::with_capacity(limit),
+            backtrace_limit: limit,
         }
     }
 
     pub fn record_state(&mut self, cpu: &CPU, bus: &dyn Bus16) {
-        self.states.push_back(ExecutionState::new(cpu, bus));
-        if self.states.len() > self.backtrace_limit {
-            self.states.remove(0);
+        if self.states.len() == self.backtrace_limit {
+            self.states.pop_front();
         }
+        self.states.push_back(ExecutionState::new(cpu, bus));
     }
 
     pub fn dump_backtrace(&self) {
@@ -51,7 +48,7 @@ impl ExecutionState {
         let opcode = bus.read_byte(cpu.pc);
         let operand1 = bus.read_byte(cpu.pc + 1);
         let operand2 = bus.read_byte(cpu.pc + 2);
-        let next_instruction = Disassembler::disassemble(opcode, operand1, operand2);
+        let next_instruction = Instruction::new(opcode, operand1, operand2);
 
         Self {
             next_instruction,
