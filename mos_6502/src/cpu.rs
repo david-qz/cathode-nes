@@ -67,8 +67,9 @@ impl CPU {
 
     pub fn reset(&mut self, bus: &dyn Bus16) {
         self.pc = bus.read_word(Self::RESET_VECTOR);
+        self.s = 0xFD;
         self.irq_disable = true;
-        self.total_cycles += 6;
+        self.total_cycles += 7;
     }
 
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
