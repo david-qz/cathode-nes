@@ -99,7 +99,7 @@ impl CPU {
                 self.adc(bus, effective_address, 2, 6)
             }
             0x71 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.adc(bus, effective_address, 2, 5);
             }
             0x75 => {
@@ -107,11 +107,11 @@ impl CPU {
                 self.adc(bus, effective_address, 2, 4)
             }
             0x7D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.adc(bus, effective_address, 3, 4);
             }
             0x79 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.adc(bus, effective_address, 3, 4);
             }
             // AND
@@ -132,7 +132,7 @@ impl CPU {
                 self.and(bus, effective_address, 2, 6);
             }
             0x31 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.and(bus, effective_address, 2, 5);
             }
             0x35 => {
@@ -140,21 +140,21 @@ impl CPU {
                 self.and(bus, effective_address, 2, 4);
             }
             0x3D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.and(bus, effective_address, 3, 4);
             }
             0x39 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.and(bus, effective_address, 3, 4);
             }
             // ASL
             0x0E => {
                 let effective_address = self.resolve_address_absolute(bus);
-                self.asl(bus, Some(effective_address), 3, 4);
+                self.asl(bus, Some(effective_address), 3, 6);
             }
             0x06 => {
                 let effective_address = self.resolve_address_zero_page(bus);
-                self.asl(bus, Some(effective_address), 2, 3);
+                self.asl(bus, Some(effective_address), 2, 5);
             }
             0x0A => {
                 // Accumulator addressing mode.
@@ -165,7 +165,7 @@ impl CPU {
                 self.asl(bus, Some(effective_address), 2, 6);
             }
             0x1E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.asl(bus, Some(effective_address), 3, 7);
             }
             // BCC
@@ -221,7 +221,7 @@ impl CPU {
                 self.cmp(bus, effective_address, 2, 6);
             }
             0xD1 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.cmp(bus, effective_address, 2, 5);
             }
             0xD5 => {
@@ -229,11 +229,11 @@ impl CPU {
                 self.cmp(bus, effective_address, 2, 4);
             }
             0xDD => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.cmp(bus, effective_address, 3, 4);
             }
             0xD9 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.cmp(bus, effective_address, 3, 4);
             }
             // CPX
@@ -276,7 +276,7 @@ impl CPU {
                 self.dec(bus, effective_address, 2, 6);
             }
             0xDE => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.dec(bus, effective_address, 3, 7);
             }
             // DEX
@@ -301,7 +301,7 @@ impl CPU {
                 self.eor(bus, effective_address, 2, 6);
             }
             0x51 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.eor(bus, effective_address, 2, 5);
             }
             0x55 => {
@@ -309,11 +309,11 @@ impl CPU {
                 self.eor(bus, effective_address, 2, 4);
             }
             0x5D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.eor(bus, effective_address, 3, 4);
             }
             0x59 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.eor(bus, effective_address, 3, 4);
             }
             // INC
@@ -330,7 +330,7 @@ impl CPU {
                 self.inc(bus, effective_address, 2, 6);
             }
             0xFE => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.inc(bus, effective_address, 3, 7);
             }
             // INX
@@ -369,7 +369,7 @@ impl CPU {
                 self.lda(bus, effective_address, 2, 6);
             }
             0xB1 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.lda(bus, effective_address, 2, 5);
             }
             0xB5 => {
@@ -377,11 +377,11 @@ impl CPU {
                 self.lda(bus, effective_address, 2, 4);
             }
             0xBD => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.lda(bus, effective_address, 3, 4);
             }
             0xB9 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.lda(bus, effective_address, 3, 4);
             }
             // LDX
@@ -398,7 +398,7 @@ impl CPU {
                 self.ldx(bus, effective_address, 2, 3);
             }
             0xBE => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.ldx(bus, effective_address, 3, 4);
             }
             0xB6 => {
@@ -423,7 +423,7 @@ impl CPU {
                 self.ldy(bus, effective_address, 2, 4);
             }
             0xBC => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.ldy(bus, effective_address, 3, 4);
             }
             // LSR
@@ -444,7 +444,7 @@ impl CPU {
                 self.lsr(bus, Some(effective_address), 2, 6);
             }
             0x5E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.lsr(bus, Some(effective_address), 3, 7);
             }
             // NOP
@@ -467,7 +467,7 @@ impl CPU {
                 self.ora(bus, effective_address, 2, 6);
             }
             0x11 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.ora(bus, effective_address, 2, 5);
             }
             0x15 => {
@@ -475,11 +475,11 @@ impl CPU {
                 self.ora(bus, effective_address, 2, 4);
             }
             0x1D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.ora(bus, effective_address, 3, 4);
             }
             0x19 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.ora(bus, effective_address, 3, 4);
             }
             // PHA
@@ -508,7 +508,7 @@ impl CPU {
                 self.rol(bus, Some(effective_address), 2, 6);
             }
             0x3E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.rol(bus, Some(effective_address), 3, 7);
             }
             // ROR
@@ -529,7 +529,7 @@ impl CPU {
                 self.ror(bus, Some(effective_address), 2, 6);
             }
             0x7E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.ror(bus, Some(effective_address), 3, 7);
             }
             // RTI
@@ -554,7 +554,7 @@ impl CPU {
                 self.sbc(bus, effective_address, 2, 6);
             }
             0xF1 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.sbc(bus, effective_address, 2, 5);
             }
             0xF5 => {
@@ -562,11 +562,11 @@ impl CPU {
                 self.sbc(bus, effective_address, 2, 4);
             }
             0xFD => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.sbc(bus, effective_address, 3, 4);
             }
             0xF9 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
                 self.sbc(bus, effective_address, 3, 4);
             }
             // SEC
@@ -589,7 +589,7 @@ impl CPU {
                 self.sta(bus, effective_address, 2, 6);
             }
             0x91 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus);
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.sta(bus, effective_address, 2, 6);
             }
             0x95 => {
@@ -597,11 +597,11 @@ impl CPU {
                 self.sta(bus, effective_address, 2, 4);
             }
             0x9D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus);
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.sta(bus, effective_address, 3, 5);
             }
             0x99 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus);
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
                 self.sta(bus, effective_address, 3, 5);
             }
             // STX
@@ -675,35 +675,41 @@ impl CPU {
         base_address.wrapping_add(self.y) as u16
     }
 
-    fn resolve_address_indexed_absolute_x(&mut self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_indexed_absolute_x(&mut self, bus: &dyn Bus16, extra_cycles: bool) -> u16 {
         let base_address = bus.read_word(self.pc + 1);
         let effective_address = base_address.wrapping_add(self.x as u16);
-        if CPU::crosses_page_boundary(base_address, effective_address) {
+        if extra_cycles && CPU::crosses_page_boundary(base_address, effective_address) {
             self.total_cycles += 1;
         }
         effective_address
     }
 
-    fn resolve_address_indexed_absolute_y(&mut self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_indexed_absolute_y(&mut self, bus: &dyn Bus16, extra_cycles: bool) -> u16 {
         let base_address = bus.read_word(self.pc + 1);
         let effective_address = base_address.wrapping_add(self.y as u16);
-        if CPU::crosses_page_boundary(base_address, effective_address) {
+        if extra_cycles && CPU::crosses_page_boundary(base_address, effective_address) {
             self.total_cycles += 1;
         }
         effective_address
+    }
+
+    fn read_word_with_page_wrapping(bus: &dyn Bus16, address: u16) -> u16 {
+        let low_byte = bus.read_byte(address);
+        let high_byte = bus.read_byte(address & 0xFF00 | address.wrapping_add(1) & 0x00FF);
+        (high_byte as u16) << 8 | low_byte as u16
     }
 
     fn resolve_address_indexed_indirect_x(&self, bus: &dyn Bus16) -> u16 {
         let base_address = bus.read_byte(self.pc + 1);
         let indirect_address = base_address.wrapping_add(self.x) as u16;
-        bus.read_word(indirect_address)
+        CPU::read_word_with_page_wrapping(bus, indirect_address)
     }
 
-    fn resolve_address_indirect_indexed_y(&mut self, bus: &dyn Bus16) -> u16 {
-        let indirect_address = bus.read_byte(self.pc + 1);
-        let base_address = bus.read_word(indirect_address as u16);
+    fn resolve_address_indirect_indexed_y(&mut self, bus: &dyn Bus16, extra_cycles: bool) -> u16 {
+        let indirect_address = bus.read_byte(self.pc + 1) as u16;
+        let base_address = CPU::read_word_with_page_wrapping(bus, indirect_address);
         let effective_address = base_address.wrapping_add(self.y as u16);
-        if CPU::crosses_page_boundary(base_address, effective_address) {
+        if extra_cycles && CPU::crosses_page_boundary(base_address, effective_address) {
             self.total_cycles += 1;
         }
         effective_address
@@ -711,11 +717,14 @@ impl CPU {
 
     fn resolve_address_absolute_indirect(&self, bus: &dyn Bus16) -> u16 {
         let indirect_address = bus.read_word(self.pc + 1);
-        bus.read_word(indirect_address)
+        CPU::read_word_with_page_wrapping(bus, indirect_address)
     }
 
     fn resolve_address_relative(&self, bus: &dyn Bus16) -> u16 {
-        let offset = (bus.read_byte(self.pc + 1) as i8) as i16;
+        // NOTE: This is the only addressing mode helper that is supposed to be called after the PC has been incremented
+        //       by the instruction length. It makes the offset math a little easier this way as the 6502 would have
+        //       incremented its PC twice before calculating the offset addition also.
+        let offset = (bus.read_byte(self.pc - 1) as i8) as i16;
         self.pc.wrapping_add_signed(offset)
     }
 
@@ -1016,76 +1025,70 @@ impl CPU {
     fn relative_conditional_branch(&mut self, bus: &dyn Bus16, should_branch: bool) {
         if should_branch {
             let target_address = self.resolve_address_relative(bus);
+
             if CPU::crosses_page_boundary(self.pc, target_address) {
                 self.total_cycles += 2;
             } else {
                 self.total_cycles += 1;
             }
+
             self.pc = target_address;
         }
     }
 
     // Operation BEQ: Branch on result zero.
     fn beq(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, self.zero);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, self.zero);
         self.total_cycles += cycles;
     }
 
     // Operation BNE: Branch on result not zero.
     fn bne(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, !self.zero);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, !self.zero);
         self.total_cycles += cycles;
     }
 
     // Operation BCC: Branch on carry clear.
     fn bcc(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, !self.carry);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, !self.carry);
         self.total_cycles += cycles;
     }
 
     // Operation BCS: Branch on carry set.
     fn bcs(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, self.carry);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, self.carry);
         self.total_cycles += cycles;
     }
 
     // Operation BVC: Branch on overflow clear.
     fn bvc(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, !self.overflow);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, !self.overflow);
         self.total_cycles += cycles;
     }
 
     // Operation BVS: Branch on overflow set.
     fn bvs(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, self.overflow);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, self.overflow);
         self.total_cycles += cycles;
     }
 
     // Operation BMI: Branch on result minus.
     fn bmi(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, self.negative);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, self.negative);
         self.total_cycles += cycles;
     }
 
     // Operation BPL: Branch on result plus.
     fn bpl(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
-        self.relative_conditional_branch(bus, !self.negative);
-
         self.pc += length;
+        self.relative_conditional_branch(bus, !self.negative);
         self.total_cycles += cycles;
     }
 

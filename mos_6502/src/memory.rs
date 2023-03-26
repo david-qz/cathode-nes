@@ -6,8 +6,8 @@ pub trait Bus16 {
     fn write_byte(&mut self, address: u16, value: u8);
 
     fn read_word(&self, address: u16) -> u16 {
-        let low_byte = self.read_byte(address + 0);
-        let high_byte = self.read_byte(address + 1);
+        let low_byte = self.read_byte(address);
+        let high_byte = self.read_byte(address.wrapping_add(1));
         (high_byte as u16) << 8 | low_byte as u16
     }
 
