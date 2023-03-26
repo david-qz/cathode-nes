@@ -642,6 +642,41 @@ impl CPU {
             0x9A => self.txs(1, 2),
             // TYA
             0x98 => self.tya(1, 2),
+            // "Illegal" NOP
+            0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => self.nop(1, 2),
+            0x80 | 0x82 | 0x89 | 0xC2 | 0xE2 => self.nop(2, 2),
+            0x04 | 0x44 | 0x64 => self.nop(2, 3),
+            0x14 | 0x34 | 0x54 | 0x74 | 0xD4 | 0xF4 => self.nop(2, 4),
+            0x0C => self.nop(3, 4),
+            0x1C | 0x3C | 0x5C | 0x7C | 0xDC | 0xFC => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            // "Illegal" LAX
+            0xA7 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.lax(bus, effective_address, 2, 3);
+            }
+            0xB7 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.lax(bus, effective_address, 2, 4);
+            }
+            0xAF => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.lax(bus, effective_address, 3, 4);
+            }
+            0xBF => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.lax(bus, effective_address, 3, 4);
+            }
+            0xA3 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.lax(bus, effective_address, 2, 6);
+            }
+            0xB3 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.lax(bus, effective_address, 2, 5);
+            }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
             }
@@ -1369,6 +1404,17 @@ impl CPU {
 
     // Operation NOP: No operation.
     fn nop(&mut self, length: u16, cycles: u64) {
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation LAX: LDA + LDX
+    fn lax(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let value = bus.read_byte(address);
+        self.a = value;
+        self.x = value;
+        self.set_nz_flags(value);
+
         self.pc += length;
         self.total_cycles += cycles;
     }
