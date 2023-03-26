@@ -752,6 +752,35 @@ impl CPU {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.isc(bus, effective_address, 2, 8);
             }
+            // "Illegal" SLO
+            0x07 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.slo(bus, effective_address, 2, 5);
+            }
+            0x17 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.slo(bus, effective_address, 2, 6);
+            }
+            0x0F => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.slo(bus, effective_address, 3, 6);
+            }
+            0x1F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.slo(bus, effective_address, 3, 7);
+            }
+            0x1B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.slo(bus, effective_address, 3, 7);
+            }
+            0x03 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.slo(bus, effective_address, 2, 8);
+            }
+            0x13 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.slo(bus, effective_address, 2, 8);
+            }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
             }
@@ -1516,6 +1545,15 @@ impl CPU {
     fn isc(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.inc(bus, address, 0, 0);
         self.sbc(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SLO: ASL + ORA
+    fn slo(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.asl(bus, Some(address), 0, 0);
+        self.ora(bus, address, 0, 0);
 
         self.pc += length;
         self.total_cycles += cycles;
