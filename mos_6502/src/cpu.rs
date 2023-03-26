@@ -1105,11 +1105,6 @@ impl CPU {
 
     // Operation ADC: Add memory to accumulator with carry.
     fn adc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
-        #[cfg(feature = "decimal_mode")]
-        if self.decimal_mode {
-            self.panic_with_backtrace("ADC: decimal mode not yet implemented!");
-        }
-
         let value = bus.read_byte(address);
         let (sum, carry, overflow) = CPU::adder(self.a, value, self.carry);
         self.a = sum;
@@ -1123,11 +1118,6 @@ impl CPU {
 
     // Operation SBC: Subtract memory from accumulator with borrow.
     fn sbc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
-        #[cfg(feature = "decimal_mode")]
-        if self.decimal_mode {
-            self.panic_with_backtrace("SBC: decimal mode not yet implemented!");
-        }
-
         let value = bus.read_byte(address);
         let (sum, carry, overflow) = CPU::adder(self.a, !value, self.carry);
         self.a = sum;
