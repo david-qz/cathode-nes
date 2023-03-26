@@ -723,6 +723,35 @@ impl CPU {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.dcp(bus, effective_address, 2, 8);
             }
+            // "Illegal" ISC
+            0xE7 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.isc(bus, effective_address, 2, 5);
+            }
+            0xF7 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.isc(bus, effective_address, 2, 6);
+            }
+            0xEF => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.isc(bus, effective_address, 3, 6);
+            }
+            0xFF => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.isc(bus, effective_address, 3, 7);
+            }
+            0xFB => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.isc(bus, effective_address, 3, 7);
+            }
+            0xE3 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.isc(bus, effective_address, 2, 8);
+            }
+            0xF3 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.isc(bus, effective_address, 2, 8);
+            }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
             }
@@ -1478,6 +1507,15 @@ impl CPU {
     fn dcp(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.dec(bus, address, 0, 0);
         self.cmp(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation ISC: INC + SBC
+    fn isc(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.inc(bus, address, 0, 0);
+        self.sbc(bus, address, 0, 0);
 
         self.pc += length;
         self.total_cycles += cycles;
