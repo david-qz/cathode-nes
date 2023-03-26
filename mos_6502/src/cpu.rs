@@ -781,6 +781,35 @@ impl CPU {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.slo(bus, effective_address, 2, 8);
             }
+            // "Illegal" RLA
+            0x27 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.rla(bus, effective_address, 2, 5);
+            }
+            0x37 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.rla(bus, effective_address, 2, 6);
+            }
+            0x2F => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.rla(bus, effective_address, 3, 6);
+            }
+            0x3F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.rla(bus, effective_address, 3, 7);
+            }
+            0x3B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.rla(bus, effective_address, 3, 7);
+            }
+            0x23 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.rla(bus, effective_address, 2, 8);
+            }
+            0x33 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.rla(bus, effective_address, 2, 8);
+            }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
             }
@@ -1554,6 +1583,15 @@ impl CPU {
     fn slo(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.asl(bus, Some(address), 0, 0);
         self.ora(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation RLA: ROL + AND
+    fn rla(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.rol(bus, Some(address), 0, 0);
+        self.and(bus, address, 0, 0);
 
         self.pc += length;
         self.total_cycles += cycles;
