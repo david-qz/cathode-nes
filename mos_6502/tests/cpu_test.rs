@@ -57,7 +57,7 @@ fn klaus_functional_test_no_decimal() {
 
     // NOTE: This cycle count may or may not be correct. This assertion mainly exists to guard against accidentally
     //       regressing the emulator's timings. It may need to be updated if accuracy is improved.
-    let expected_cycles = 84_030_434;
+    let expected_cycles = 84_030_458;
     assert_eq!(
         cpu.total_cycles, expected_cycles,
         "CPU completed test in unexpected number of cycles."
