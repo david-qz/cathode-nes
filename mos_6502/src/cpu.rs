@@ -642,10 +642,19 @@ impl CPU {
             0x9A => self.txs(1, 2),
             // TYA
             0x98 => self.tya(1, 2),
-            _ => panic!("Unknown opcode: 0x{:X}", opcode),
+            _ => {
+                self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
+            }
         };
 
         self.total_cycles - cycles_at_start
+    }
+
+    fn panic_with_backtrace(&self, message: &str) {
+        if let Some(debugger) = &self.debugger {
+            debugger.borrow().dump_backtrace();
+        }
+        panic!("{}", message)
     }
 
     #[inline(always)]
@@ -863,7 +872,7 @@ impl CPU {
     fn adc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         #[cfg(feature = "decimal_mode")]
         if self.decimal_mode {
-            panic!("ADC: decimal mode not yet implemented!");
+            self.panic_with_backtrace("ADC: decimal mode not yet implemented!");
         }
 
         let value = bus.read_byte(address);
@@ -881,7 +890,7 @@ impl CPU {
     fn sbc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
         #[cfg(feature = "decimal_mode")]
         if self.decimal_mode {
-            panic!("SBC: decimal mode not yet implemented!");
+            self.panic_with_backtrace("SBC: decimal mode not yet implemented!");
         }
 
         let value = bus.read_byte(address);
