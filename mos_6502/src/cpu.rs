@@ -537,7 +537,7 @@ impl CPU {
             // RTS
             0x60 => self.rts(bus, 6),
             // SBC
-            0xE9 => {
+            0xE9 | 0xEB => {
                 let effective_address = self.resolve_address_immediate();
                 self.sbc(bus, effective_address, 2, 2);
             }
@@ -676,6 +676,52 @@ impl CPU {
             0xB3 => {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
                 self.lax(bus, effective_address, 2, 5);
+            }
+            // "Illegal" SAX
+            0x87 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sax(bus, effective_address, 2, 3);
+            }
+            0x97 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.sax(bus, effective_address, 2, 4);
+            }
+            0x8F => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sax(bus, effective_address, 3, 4);
+            }
+            0x83 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sax(bus, effective_address, 2, 6);
+            }
+            // "Illegal" DCP
+            0xC7 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.dcp(bus, effective_address, 2, 5);
+            }
+            0xD7 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.dcp(bus, effective_address, 2, 6);
+            }
+            0xCF => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.dcp(bus, effective_address, 3, 6);
+            }
+            0xDF => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.dcp(bus, effective_address, 3, 7);
+            }
+            0xDB => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.dcp(bus, effective_address, 3, 7);
+            }
+            0xC3 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.dcp(bus, effective_address, 2, 8);
+            }
+            0xD3 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.dcp(bus, effective_address, 2, 8);
             }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
@@ -1414,6 +1460,24 @@ impl CPU {
         self.a = value;
         self.x = value;
         self.set_nz_flags(value);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SAX: A & X -> M
+    fn sax(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let value = self.a & self.x;
+        bus.write_byte(address, value);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation DCP: DEC + CMP
+    fn dcp(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.dec(bus, address, 0, 0);
+        self.cmp(bus, address, 0, 0);
 
         self.pc += length;
         self.total_cycles += cycles;
