@@ -810,6 +810,35 @@ impl CPU {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.rla(bus, effective_address, 2, 8);
             }
+            // "Illegal" SRE
+            0x47 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sre(bus, effective_address, 2, 5);
+            }
+            0x57 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sre(bus, effective_address, 2, 6);
+            }
+            0x4F => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sre(bus, effective_address, 3, 6);
+            }
+            0x5F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.sre(bus, effective_address, 3, 7);
+            }
+            0x5B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.sre(bus, effective_address, 3, 7);
+            }
+            0x43 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sre(bus, effective_address, 2, 8);
+            }
+            0x53 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.sre(bus, effective_address, 2, 8);
+            }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
             }
@@ -1592,6 +1621,15 @@ impl CPU {
     fn rla(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.rol(bus, Some(address), 0, 0);
         self.and(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SRE: LSR + EOR
+    fn sre(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.lsr(bus, Some(address), 0, 0);
+        self.eor(bus, address, 0, 0);
 
         self.pc += length;
         self.total_cycles += cycles;
