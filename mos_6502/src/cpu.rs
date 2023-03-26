@@ -21,6 +21,7 @@ pub struct CPU {
     pub negative: bool,
 
     pub total_cycles: u64,
+    pub jammed: bool,
     debugger: Option<Rc<RefCell<Debugger>>>,
 }
 
@@ -45,6 +46,7 @@ impl CPU {
             overflow: false,
             negative: false,
             total_cycles: 0,
+            jammed: false,
             debugger: None,
         }
     }
@@ -73,6 +75,10 @@ impl CPU {
     }
 
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
+        if self.jammed {
+            return 1;
+        }
+
         if let Some(debugger) = &self.debugger {
             debugger.borrow_mut().record_state(&self, bus);
         }
@@ -867,6 +873,9 @@ impl CPU {
             0x73 => {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.rra(bus, effective_address, 2, 8);
+            }
+            0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xB2 | 0xD2 | 0xF2 => {
+                self.jam()
             }
             _ => {
                 self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
@@ -1671,5 +1680,9 @@ impl CPU {
 
         self.pc += length;
         self.total_cycles += cycles;
+    }
+
+    fn jam(&mut self) {
+        self.jammed = true;
     }
 }

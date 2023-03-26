@@ -53,6 +53,10 @@ impl NES {
         self.cpu.borrow().current_state(&mut self.cpu_bus())
     }
 
+    pub fn jammed(&self) -> bool {
+        self.cpu.borrow().jammed
+    }
+
     pub fn enable_debugger(&mut self) {
         let debugger = Rc::new(RefCell::new(Debugger::new(None)));
         self.cpu.borrow_mut().attach_debugger(Rc::clone(&debugger));

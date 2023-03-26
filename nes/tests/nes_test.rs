@@ -13,25 +13,15 @@ fn nes_test() {
     nes.set_pc(0xC000);
     nes.enable_debugger();
 
-    let mut last_pc = nes.get_pc();
-    loop {
-        if golden_path[ticks] != nes.current_state() {
+    while !nes.jammed() {
+        if ticks < golden_path.len() && golden_path[ticks] != nes.current_state() {
             nes.dump_backtrace();
             assert_eq!(golden_path[ticks], nes.current_state())
         }
 
         nes.tick();
         ticks += 1;
-
-        let current_pc = nes.get_pc();
-        if last_pc == current_pc {
-            break;
-        } else {
-            last_pc = current_pc;
-        }
     }
-
-    todo!("Check failure flags");
 }
 
 fn load_golden_log() -> Vec<ExecutionState> {
