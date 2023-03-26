@@ -11,10 +11,14 @@ fn nes_test() {
     let mut nes = NES::new();
     nes.insert_cartridge(cartridge);
     nes.set_pc(0xC000);
+    nes.enable_debugger();
 
     let mut last_pc = nes.get_pc();
     loop {
-        assert_eq!(golden_path[ticks], nes.current_state());
+        if golden_path[ticks] != nes.current_state() {
+            nes.dump_backtrace();
+            assert_eq!(golden_path[ticks], nes.current_state())
+        }
 
         nes.tick();
         ticks += 1;

@@ -2,8 +2,15 @@ use crate::{
     cartridge::{Cartridge, EmptyCartridgeSlot},
     ppu::PPU,
 };
-use mos_6502::{cpu::CPU, debugging::ExecutionState, memory::Bus16};
-use std::cell::{RefCell, RefMut};
+use mos_6502::{
+    cpu::CPU,
+    debugging::{Debugger, ExecutionState},
+    memory::Bus16,
+};
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+};
 
 const NES_CPU_RAM_SIZE: usize = 0x0800;
 const NES_PPU_RAM_SIZE: usize = 0x0800;
@@ -14,6 +21,7 @@ pub struct NES {
     ppu: RefCell<PPU>,
     ppu_ram: Box<RefCell<[u8; NES_PPU_RAM_SIZE]>>,
     cartridge: RefCell<Box<dyn Cartridge>>,
+    debugger: Option<Rc<RefCell<Debugger>>>,
 }
 
 impl NES {
@@ -24,6 +32,7 @@ impl NES {
             ppu: RefCell::new(PPU::new()),
             ppu_ram: Box::new(RefCell::new([0; NES_PPU_RAM_SIZE])),
             cartridge: RefCell::new(Box::new(EmptyCartridgeSlot)),
+            debugger: None,
         }
     }
 
@@ -42,6 +51,18 @@ impl NES {
 
     pub fn current_state(&self) -> ExecutionState {
         self.cpu.borrow().current_state(&mut self.cpu_bus())
+    }
+
+    pub fn enable_debugger(&mut self) {
+        let debugger = Rc::new(RefCell::new(Debugger::new(None)));
+        self.cpu.borrow_mut().attach_debugger(Rc::clone(&debugger));
+        self.debugger = Some(debugger);
+    }
+
+    pub fn dump_backtrace(&self) {
+        if let Some(debugger) = &self.debugger {
+            debugger.borrow().dump_backtrace();
+        }
     }
 
     pub fn tick(&mut self) {
