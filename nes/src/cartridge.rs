@@ -1,4 +1,7 @@
-use crate::rom::{RomFile, RomLoadError};
+use crate::{
+    memory::{Ram, Rom},
+    rom::{RomFile, RomLoadError},
+};
 
 pub trait Cartridge {
     fn read_cpu_byte(&mut self, address: u16) -> u8;
@@ -16,7 +19,11 @@ impl dyn Cartridge {
 
     pub fn new(rom_file: RomFile) -> Box<dyn Cartridge> {
         match rom_file.header.mapper_number() {
-            0 => Box::new(NROM::new(rom_file)),
+            0 => match rom_file.prg_rom.len() {
+                16384 => Box::new(NROM::<16384>::new(rom_file)),
+                32768 => Box::new(NROM::<32768>::new(rom_file)),
+                _ => panic!("NROM rom file has unsupported prg_rom size!"),
+            },
             _ => panic!("Unsupported mapper number!"),
         }
     }
@@ -33,21 +40,21 @@ impl Cartridge for EmptyCartridgeSlot {
     fn write_cpu_byte(&mut self, address: u16, value: u8) {}
 }
 
-struct NROM {
-    prg_rom: Box<[u8]>,
-    chr_rom: Box<[u8]>,
-    prg_ram: Option<Box<[u8; 0x2000]>>,
+struct NROM<const PRG_ROM_SIZE: usize> {
+    prg_rom: Rom<PRG_ROM_SIZE>,
+    chr_rom: Rom<8192>,
+    prg_ram: Option<Ram<2048>>,
 }
 
-impl NROM {
+impl<const PRG_ROM_SIZE: usize> NROM<PRG_ROM_SIZE> {
     fn new(rom_file: RomFile) -> Self {
         assert_eq!(rom_file.header.mapper_number(), 0);
 
         Self {
-            prg_rom: rom_file.prg_rom,
-            chr_rom: rom_file.chr_rom,
+            prg_rom: Rom::from_slice(&rom_file.prg_rom),
+            chr_rom: Rom::from_slice(&rom_file.chr_rom),
             prg_ram: if rom_file.header.has_persistent_memory() {
-                Some(Box::new([0; 0x2000]))
+                Some(Ram::new())
             } else {
                 None
             },
@@ -55,17 +62,17 @@ impl NROM {
     }
 }
 
-impl Cartridge for NROM {
+impl<const PRG_ROM_SIZE: usize> Cartridge for NROM<PRG_ROM_SIZE> {
     fn read_cpu_byte(&mut self, address: u16) -> u8 {
         match address {
             0x6000..=0x7FFF => {
                 if let Some(prg_ram) = &self.prg_ram {
-                    prg_ram[(address as usize - 0x6000) % 0x2000]
+                    prg_ram[address - 0x6000]
                 } else {
                     0
                 }
             }
-            0x8000.. => self.prg_rom[(address as usize - 0x8000) % self.prg_rom.len()],
+            0x8000.. => self.prg_rom[(address - 0x8000)],
             _ => panic!("NROM: cartridge addressed outside valid range!"),
         }
     }
@@ -74,10 +81,10 @@ impl Cartridge for NROM {
         match address {
             0x6000..=0x7FFF => {
                 if let Some(prg_ram) = &mut self.prg_ram {
-                    prg_ram[(address as usize - 0x6000) % 0x2000] = value
+                    prg_ram[(address - 0x6000)] = value
                 }
             }
-            0x8000.. => self.prg_rom[(address as usize - 0x8000) % self.prg_rom.len()] = value,
+            0x8000.. => (),
             _ => panic!("NROM: cartridge addressed outside valid range!"),
         }
     }
