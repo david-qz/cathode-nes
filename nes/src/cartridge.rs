@@ -1,7 +1,7 @@
 use crate::rom::{RomFile, RomLoadError};
 
 pub trait Cartridge {
-    fn read_cpu_byte(&self, address: u16) -> u8;
+    fn read_cpu_byte(&mut self, address: u16) -> u8;
     fn write_cpu_byte(&mut self, address: u16, value: u8);
 
     // fn read_ppu_byte(&self, address: u16) -> u8;
@@ -26,7 +26,7 @@ pub struct EmptyCartridgeSlot;
 
 #[allow(unused_variables)]
 impl Cartridge for EmptyCartridgeSlot {
-    fn read_cpu_byte(&self, address: u16) -> u8 {
+    fn read_cpu_byte(&mut self, address: u16) -> u8 {
         0
     }
 
@@ -56,7 +56,7 @@ impl NROM {
 }
 
 impl Cartridge for NROM {
-    fn read_cpu_byte(&self, address: u16) -> u8 {
+    fn read_cpu_byte(&mut self, address: u16) -> u8 {
         match address {
             0x6000..=0x7FFF => {
                 if let Some(prg_ram) = &self.prg_ram {

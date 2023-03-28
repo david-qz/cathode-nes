@@ -90,7 +90,7 @@ struct CpuBus<'a> {
 }
 
 impl<'a> Bus16 for CpuBus<'a> {
-    fn read_byte(&self, address: u16) -> u8 {
+    fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             0..=0x1FFF => self.ram[address as usize % NES_CPU_RAM_SIZE],
             0x2000..=0x3FFF => self.ppu.get_register(address),
@@ -121,7 +121,7 @@ struct PpuBus<'a> {
 }
 
 impl<'a> Bus16 for PpuBus<'a> {
-    fn read_byte(&self, address: u16) -> u8 {
+    fn read_byte(&mut self, address: u16) -> u8 {
         // TODO
         0
     }

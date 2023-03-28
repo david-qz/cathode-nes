@@ -59,7 +59,7 @@ impl CPU {
         self.debugger = None;
     }
 
-    pub fn current_state(&self, bus: &dyn Bus16) -> ExecutionState {
+    pub fn current_state(&self, bus: &mut dyn Bus16) -> ExecutionState {
         ExecutionState::new(self, bus)
     }
 
@@ -67,7 +67,7 @@ impl CPU {
         self.encode_p(false)
     }
 
-    pub fn reset(&mut self, bus: &dyn Bus16) {
+    pub fn reset(&mut self, bus: &mut dyn Bus16) {
         self.pc = bus.read_word(Self::RESET_VECTOR);
         self.s = 0xFD;
         self.irq_disable = true;
@@ -901,25 +901,29 @@ impl CPU {
         self.pc + 1
     }
 
-    fn resolve_address_absolute(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_absolute(&self, bus: &mut dyn Bus16) -> u16 {
         bus.read_word(self.pc + 1)
     }
 
-    fn resolve_address_zero_page(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_zero_page(&self, bus: &mut dyn Bus16) -> u16 {
         bus.read_byte(self.pc + 1) as u16
     }
 
-    fn resolve_address_indexed_zero_page_x(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_indexed_zero_page_x(&self, bus: &mut dyn Bus16) -> u16 {
         let base_address = bus.read_byte(self.pc + 1);
         base_address.wrapping_add(self.x) as u16
     }
 
-    fn resolve_address_indexed_zero_page_y(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_indexed_zero_page_y(&self, bus: &mut dyn Bus16) -> u16 {
         let base_address = bus.read_byte(self.pc + 1);
         base_address.wrapping_add(self.y) as u16
     }
 
-    fn resolve_address_indexed_absolute_x(&mut self, bus: &dyn Bus16, extra_cycles: bool) -> u16 {
+    fn resolve_address_indexed_absolute_x(
+        &mut self,
+        bus: &mut dyn Bus16,
+        extra_cycles: bool,
+    ) -> u16 {
         let base_address = bus.read_word(self.pc + 1);
         let effective_address = base_address.wrapping_add(self.x as u16);
         if extra_cycles && CPU::crosses_page_boundary(base_address, effective_address) {
@@ -928,7 +932,11 @@ impl CPU {
         effective_address
     }
 
-    fn resolve_address_indexed_absolute_y(&mut self, bus: &dyn Bus16, extra_cycles: bool) -> u16 {
+    fn resolve_address_indexed_absolute_y(
+        &mut self,
+        bus: &mut dyn Bus16,
+        extra_cycles: bool,
+    ) -> u16 {
         let base_address = bus.read_word(self.pc + 1);
         let effective_address = base_address.wrapping_add(self.y as u16);
         if extra_cycles && CPU::crosses_page_boundary(base_address, effective_address) {
@@ -937,19 +945,23 @@ impl CPU {
         effective_address
     }
 
-    fn read_word_with_page_wrapping(bus: &dyn Bus16, address: u16) -> u16 {
+    fn read_word_with_page_wrapping(bus: &mut dyn Bus16, address: u16) -> u16 {
         let low_byte = bus.read_byte(address);
         let high_byte = bus.read_byte(address & 0xFF00 | address.wrapping_add(1) & 0x00FF);
         (high_byte as u16) << 8 | low_byte as u16
     }
 
-    fn resolve_address_indexed_indirect_x(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_indexed_indirect_x(&self, bus: &mut dyn Bus16) -> u16 {
         let base_address = bus.read_byte(self.pc + 1);
         let indirect_address = base_address.wrapping_add(self.x) as u16;
         CPU::read_word_with_page_wrapping(bus, indirect_address)
     }
 
-    fn resolve_address_indirect_indexed_y(&mut self, bus: &dyn Bus16, extra_cycles: bool) -> u16 {
+    fn resolve_address_indirect_indexed_y(
+        &mut self,
+        bus: &mut dyn Bus16,
+        extra_cycles: bool,
+    ) -> u16 {
         let indirect_address = bus.read_byte(self.pc + 1) as u16;
         let base_address = CPU::read_word_with_page_wrapping(bus, indirect_address);
         let effective_address = base_address.wrapping_add(self.y as u16);
@@ -959,12 +971,12 @@ impl CPU {
         effective_address
     }
 
-    fn resolve_address_absolute_indirect(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_absolute_indirect(&self, bus: &mut dyn Bus16) -> u16 {
         let indirect_address = bus.read_word(self.pc + 1);
         CPU::read_word_with_page_wrapping(bus, indirect_address)
     }
 
-    fn resolve_address_relative(&self, bus: &dyn Bus16) -> u16 {
+    fn resolve_address_relative(&self, bus: &mut dyn Bus16) -> u16 {
         // NOTE: This is the only addressing mode helper that is supposed to be called after the PC has been incremented
         //       by the instruction length. It makes the offset math a little easier this way as the 6502 would have
         //       incremented its PC twice before calculating the offset addition also.
@@ -982,12 +994,12 @@ impl CPU {
         self.push_byte(bus, ((value & 0x00FF) >> 0) as u8);
     }
 
-    fn pull_byte(&mut self, bus: &dyn Bus16) -> u8 {
+    fn pull_byte(&mut self, bus: &mut dyn Bus16) -> u8 {
         self.s = self.s.wrapping_add(1);
         bus.read_byte(Self::STACK_BASE + self.s as u16)
     }
 
-    fn pull_word(&mut self, bus: &dyn Bus16) -> u16 {
+    fn pull_word(&mut self, bus: &mut dyn Bus16) -> u16 {
         let l_byte = self.pull_byte(bus);
         let h_byte = self.pull_byte(bus);
         (h_byte as u16) << 8 | (l_byte as u16)
@@ -1038,7 +1050,7 @@ impl CPU {
     }
 
     // Operation PLA: Pull accumulator from stack.
-    fn pla(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn pla(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.a = self.pull_byte(bus);
         self.set_nz_flags(self.a);
 
@@ -1047,7 +1059,7 @@ impl CPU {
     }
 
     // Operation PLP: Pull processor status from stack.
-    fn plp(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn plp(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         let p = self.pull_byte(bus);
         self.decode_p(p);
 
@@ -1064,7 +1076,7 @@ impl CPU {
     }
 
     // Operation RTS: Return from subroutine.
-    fn rts(&mut self, bus: &dyn Bus16, cycles: u64) {
+    fn rts(&mut self, bus: &mut dyn Bus16, cycles: u64) {
         let jmp_address = self.pull_word(bus);
 
         self.pc = jmp_address + 1;
@@ -1084,7 +1096,7 @@ impl CPU {
     }
 
     // Operation RTI: Return from interrupt.
-    fn rti(&mut self, bus: &dyn Bus16, cycles: u64) {
+    fn rti(&mut self, bus: &mut dyn Bus16, cycles: u64) {
         let p = self.pull_byte(bus);
         self.decode_p(p);
         let return_address = self.pull_word(bus);
@@ -1104,7 +1116,7 @@ impl CPU {
     }
 
     // Operation ADC: Add memory to accumulator with carry.
-    fn adc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn adc(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         let (sum, carry, overflow) = CPU::adder(self.a, value, self.carry);
         self.a = sum;
@@ -1117,7 +1129,7 @@ impl CPU {
     }
 
     // Operation SBC: Subtract memory from accumulator with borrow.
-    fn sbc(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn sbc(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         let (sum, carry, overflow) = CPU::adder(self.a, !value, self.carry);
         self.a = sum;
@@ -1130,7 +1142,7 @@ impl CPU {
     }
 
     // Operation AND: "AND" memory with accumulator.
-    fn and(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn and(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = self.a & value;
         self.set_nz_flags(self.a);
@@ -1140,7 +1152,7 @@ impl CPU {
     }
 
     // Operation ORA: "OR" memory with accumulator.
-    fn ora(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn ora(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = self.a | value;
         self.set_nz_flags(self.a);
@@ -1150,7 +1162,7 @@ impl CPU {
     }
 
     // Operation EOR: "XOR" memory with accumulator.
-    fn eor(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn eor(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = self.a ^ value;
         self.set_nz_flags(self.a);
@@ -1160,7 +1172,7 @@ impl CPU {
     }
 
     // Operation BIT: Test bits in memory with accumulator.
-    fn bit(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn bit(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.zero = self.a & value == 0;
         self.negative = value & 0b10000000 != 0;
@@ -1256,7 +1268,7 @@ impl CPU {
         self.total_cycles += cycles;
     }
 
-    fn relative_conditional_branch(&mut self, bus: &dyn Bus16, should_branch: bool) {
+    fn relative_conditional_branch(&mut self, bus: &mut dyn Bus16, should_branch: bool) {
         if should_branch {
             let target_address = self.resolve_address_relative(bus);
 
@@ -1271,56 +1283,56 @@ impl CPU {
     }
 
     // Operation BEQ: Branch on result zero.
-    fn beq(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn beq(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, self.zero);
         self.total_cycles += cycles;
     }
 
     // Operation BNE: Branch on result not zero.
-    fn bne(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bne(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, !self.zero);
         self.total_cycles += cycles;
     }
 
     // Operation BCC: Branch on carry clear.
-    fn bcc(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bcc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, !self.carry);
         self.total_cycles += cycles;
     }
 
     // Operation BCS: Branch on carry set.
-    fn bcs(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bcs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, self.carry);
         self.total_cycles += cycles;
     }
 
     // Operation BVC: Branch on overflow clear.
-    fn bvc(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bvc(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, !self.overflow);
         self.total_cycles += cycles;
     }
 
     // Operation BVS: Branch on overflow set.
-    fn bvs(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bvs(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, self.overflow);
         self.total_cycles += cycles;
     }
 
     // Operation BMI: Branch on result minus.
-    fn bmi(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bmi(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, self.negative);
         self.total_cycles += cycles;
     }
 
     // Operation BPL: Branch on result plus.
-    fn bpl(&mut self, bus: &dyn Bus16, length: u16, cycles: u64) {
+    fn bpl(&mut self, bus: &mut dyn Bus16, length: u16, cycles: u64) {
         self.pc += length;
         self.relative_conditional_branch(bus, !self.negative);
         self.total_cycles += cycles;
@@ -1348,7 +1360,7 @@ impl CPU {
     }
 
     // Operation CMP: Compare memory and accumulator.
-    fn cmp(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn cmp(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.compare_value(self.a, value);
 
@@ -1357,7 +1369,7 @@ impl CPU {
     }
 
     // Operation CPX: Compare memory and index X.
-    fn cpx(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn cpx(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.compare_value(self.x, value);
 
@@ -1366,7 +1378,7 @@ impl CPU {
     }
 
     // Operation CPY: Compare memory and index Y.
-    fn cpy(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn cpy(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.compare_value(self.y, value);
 
@@ -1433,7 +1445,7 @@ impl CPU {
     }
 
     // Operation LDA: Load accumulator with memory.
-    fn lda(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn lda(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.a = bus.read_byte(address);
         self.set_nz_flags(self.a);
 
@@ -1442,7 +1454,7 @@ impl CPU {
     }
 
     // Operation LDX: Load index X with memory.
-    fn ldx(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn ldx(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.x = bus.read_byte(address);
         self.set_nz_flags(self.x);
 
@@ -1451,7 +1463,7 @@ impl CPU {
     }
 
     // Operation LDY: Load index Y with memory.
-    fn ldy(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn ldy(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.y = bus.read_byte(address);
         self.set_nz_flags(self.y);
 
@@ -1599,7 +1611,7 @@ impl CPU {
     }
 
     // "Illegal" operation LAX: LDA + LDX
-    fn lax(&mut self, bus: &dyn Bus16, address: u16, length: u16, cycles: u64) {
+    fn lax(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         let value = bus.read_byte(address);
         self.a = value;
         self.x = value;

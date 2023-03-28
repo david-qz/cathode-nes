@@ -18,7 +18,7 @@ impl Debugger {
         }
     }
 
-    pub fn record_state(&mut self, cpu: &CPU, bus: &dyn Bus16) {
+    pub fn record_state(&mut self, cpu: &CPU, bus: &mut dyn Bus16) {
         if self.states.len() == self.backtrace_limit {
             self.states.pop_front();
         }
@@ -45,7 +45,7 @@ pub struct ExecutionState {
 }
 
 impl ExecutionState {
-    pub fn new(cpu: &CPU, bus: &dyn Bus16) -> Self {
+    pub fn new(cpu: &CPU, bus: &mut dyn Bus16) -> Self {
         let opcode = bus.read_byte(cpu.pc);
         let operand1 = bus.read_byte(cpu.pc + 1);
         let operand2 = bus.read_byte(cpu.pc + 2);
