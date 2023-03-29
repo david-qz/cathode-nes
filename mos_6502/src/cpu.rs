@@ -87,798 +87,792 @@ impl CPU {
 
         let opcode = bus.read_byte(self.pc);
         match opcode {
-            // ADC
-            0x69 => {
-                let effective_address = self.resolve_address_immediate();
-                self.adc(bus, effective_address, 2, 2)
-            }
-            0x6D => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.adc(bus, effective_address, 3, 4)
-            }
-            0x65 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.adc(bus, effective_address, 2, 3)
-            }
-            0x61 => {
+            0x00 => self.brk(bus, 7),
+            0x01 => {
                 let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.adc(bus, effective_address, 2, 6)
+                self.ora(bus, effective_address, 2, 6);
             }
-            0x71 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.adc(bus, effective_address, 2, 5);
-            }
-            0x75 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.adc(bus, effective_address, 2, 4)
-            }
-            0x7D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.adc(bus, effective_address, 3, 4);
-            }
-            0x79 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.adc(bus, effective_address, 3, 4);
-            }
-            // AND
-            0x29 => {
-                let effective_address = self.resolve_address_immediate();
-                self.and(bus, effective_address, 2, 2);
-            }
-            0x2D => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.and(bus, effective_address, 3, 4);
-            }
-            0x25 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.and(bus, effective_address, 2, 3);
-            }
-            0x21 => {
+            0x02 => self.jam(),
+            0x03 => {
                 let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.and(bus, effective_address, 2, 6);
+                self.slo(bus, effective_address, 2, 8);
             }
-            0x31 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.and(bus, effective_address, 2, 5);
-            }
-            0x35 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.and(bus, effective_address, 2, 4);
-            }
-            0x3D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.and(bus, effective_address, 3, 4);
-            }
-            0x39 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.and(bus, effective_address, 3, 4);
-            }
-            // ASL
-            0x0E => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.asl(bus, Some(effective_address), 3, 6);
+            0x04 => self.nop(2, 3),
+            0x05 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ora(bus, effective_address, 2, 3);
             }
             0x06 => {
                 let effective_address = self.resolve_address_zero_page(bus);
                 self.asl(bus, Some(effective_address), 2, 5);
             }
-            0x0A => {
-                // Accumulator addressing mode.
-                self.asl(bus, None, 1, 2);
-            }
-            0x16 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.asl(bus, Some(effective_address), 2, 6);
-            }
-            0x1E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.asl(bus, Some(effective_address), 3, 7);
-            }
-            // BCC
-            0x90 => self.bcc(bus, 2, 2),
-            // BCS
-            0xB0 => self.bcs(bus, 2, 2),
-            // BEQ
-            0xF0 => self.beq(bus, 2, 2),
-            // BIT
-            0x2C => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.bit(bus, effective_address, 3, 4);
-            }
-            0x24 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.bit(bus, effective_address, 2, 3);
-            }
-            // BMI
-            0x30 => self.bmi(bus, 2, 2),
-            // BNE
-            0xD0 => self.bne(bus, 2, 2),
-            // BPL
-            0x10 => self.bpl(bus, 2, 2),
-            // BRK
-            0x00 => self.brk(bus, 7),
-            // BVC
-            0x50 => self.bvc(bus, 2, 2),
-            // BVS
-            0x70 => self.bvs(bus, 2, 2),
-            // CLC
-            0x18 => self.clc(1, 2),
-            // CLD
-            0xD8 => self.cld(1, 2),
-            // CLI
-            0x58 => self.cli(1, 2),
-            // CLV
-            0xB8 => self.clv(1, 2),
-            //CMP
-            0xC9 => {
-                let effective_address = self.resolve_address_immediate();
-                self.cmp(bus, effective_address, 2, 2);
-            }
-            0xCD => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.cmp(bus, effective_address, 3, 4);
-            }
-            0xC5 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.cmp(bus, effective_address, 2, 3);
-            }
-            0xC1 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.cmp(bus, effective_address, 2, 6);
-            }
-            0xD1 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.cmp(bus, effective_address, 2, 5);
-            }
-            0xD5 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.cmp(bus, effective_address, 2, 4);
-            }
-            0xDD => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.cmp(bus, effective_address, 3, 4);
-            }
-            0xD9 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.cmp(bus, effective_address, 3, 4);
-            }
-            // CPX
-            0xE0 => {
-                let effective_address = self.resolve_address_immediate();
-                self.cpx(bus, effective_address, 2, 2);
-            }
-            0xEC => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.cpx(bus, effective_address, 3, 4);
-            }
-            0xE4 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.cpx(bus, effective_address, 2, 3);
-            }
-            // CPY
-            0xC0 => {
-                let effective_address = self.resolve_address_immediate();
-                self.cpy(bus, effective_address, 2, 2);
-            }
-            0xCC => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.cpy(bus, effective_address, 3, 4);
-            }
-            0xC4 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.cpy(bus, effective_address, 2, 3);
-            }
-            // DEC
-            0xCE => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.dec(bus, effective_address, 3, 6);
-            }
-            0xC6 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.dec(bus, effective_address, 2, 5);
-            }
-            0xD6 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.dec(bus, effective_address, 2, 6);
-            }
-            0xDE => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.dec(bus, effective_address, 3, 7);
-            }
-            // DEX
-            0xCA => self.dex(1, 2),
-            // DEY
-            0x88 => self.dey(1, 2),
-            // EOR
-            0x49 => {
-                let effective_address = self.resolve_address_immediate();
-                self.eor(bus, effective_address, 2, 2);
-            }
-            0x4D => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.eor(bus, effective_address, 3, 4);
-            }
-            0x45 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.eor(bus, effective_address, 2, 3);
-            }
-            0x41 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.eor(bus, effective_address, 2, 6);
-            }
-            0x51 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.eor(bus, effective_address, 2, 5);
-            }
-            0x55 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.eor(bus, effective_address, 2, 4);
-            }
-            0x5D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.eor(bus, effective_address, 3, 4);
-            }
-            0x59 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.eor(bus, effective_address, 3, 4);
-            }
-            // INC
-            0xEE => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.inc(bus, effective_address, 3, 6);
-            }
-            0xE6 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.inc(bus, effective_address, 2, 5);
-            }
-            0xF6 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.inc(bus, effective_address, 2, 6);
-            }
-            0xFE => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.inc(bus, effective_address, 3, 7);
-            }
-            // INX
-            0xE8 => self.inx(1, 2),
-            // INY
-            0xC8 => self.iny(1, 2),
-            // JMP
-            0x4C => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.jmp(effective_address, 3)
-            }
-            0x6C => {
-                let effective_address = self.resolve_address_absolute_indirect(bus);
-                self.jmp(effective_address, 5)
-            }
-            // JSR
-            0x20 => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.jsr(bus, effective_address, 3, 6);
-            }
-            // LDA
-            0xA9 => {
-                let effective_address = self.resolve_address_immediate();
-                self.lda(bus, effective_address, 2, 2);
-            }
-            0xAD => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.lda(bus, effective_address, 3, 4);
-            }
-            0xA5 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.lda(bus, effective_address, 2, 3);
-            }
-            0xA1 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.lda(bus, effective_address, 2, 6);
-            }
-            0xB1 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.lda(bus, effective_address, 2, 5);
-            }
-            0xB5 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.lda(bus, effective_address, 2, 4);
-            }
-            0xBD => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.lda(bus, effective_address, 3, 4);
-            }
-            0xB9 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.lda(bus, effective_address, 3, 4);
-            }
-            // LDX
-            0xA2 => {
-                let effective_address = self.resolve_address_immediate();
-                self.ldx(bus, effective_address, 2, 2);
-            }
-            0xAE => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.ldx(bus, effective_address, 3, 4);
-            }
-            0xA6 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.ldx(bus, effective_address, 2, 3);
-            }
-            0xBE => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.ldx(bus, effective_address, 3, 4);
-            }
-            0xB6 => {
-                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
-                self.ldx(bus, effective_address, 2, 4);
-            }
-            // LDY
-            0xA0 => {
-                let effective_address = self.resolve_address_immediate();
-                self.ldy(bus, effective_address, 2, 2);
-            }
-            0xAC => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.ldy(bus, effective_address, 3, 4);
-            }
-            0xA4 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.ldy(bus, effective_address, 2, 3);
-            }
-            0xB4 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.ldy(bus, effective_address, 2, 4);
-            }
-            0xBC => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.ldy(bus, effective_address, 3, 4);
-            }
-            // LSR
-            0x4E => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.lsr(bus, Some(effective_address), 3, 6);
-            }
-            0x46 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.lsr(bus, Some(effective_address), 2, 5);
-            }
-            0x4A => {
-                // Accumulator addressing mode.
-                self.lsr(bus, None, 1, 2);
-            }
-            0x56 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.lsr(bus, Some(effective_address), 2, 6);
-            }
-            0x5E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.lsr(bus, Some(effective_address), 3, 7);
-            }
-            // NOP
-            0xEA => self.nop(1, 2),
-            // ORA
-            0x09 => {
-                let effective_address = self.resolve_address_immediate();
-                self.ora(bus, effective_address, 2, 2);
-            }
-            0x0D => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.ora(bus, effective_address, 3, 4);
-            }
-            0x05 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.ora(bus, effective_address, 2, 3);
-            }
-            0x01 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.ora(bus, effective_address, 2, 6);
-            }
-            0x11 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.ora(bus, effective_address, 2, 5);
-            }
-            0x15 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.ora(bus, effective_address, 2, 4);
-            }
-            0x1D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.ora(bus, effective_address, 3, 4);
-            }
-            0x19 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.ora(bus, effective_address, 3, 4);
-            }
-            // PHA
-            0x48 => self.pha(bus, 1, 3),
-            // PHP
-            0x08 => self.php(bus, 1, 3),
-            // PLA
-            0x68 => self.pla(bus, 1, 4),
-            // PLP
-            0x28 => self.plp(bus, 1, 4),
-            // ROL
-            0x2E => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.rol(bus, Some(effective_address), 3, 6);
-            }
-            0x26 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.rol(bus, Some(effective_address), 2, 5);
-            }
-            0x2A => {
-                // Accumulator addressing mode.
-                self.rol(bus, None, 1, 2);
-            }
-            0x36 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.rol(bus, Some(effective_address), 2, 6);
-            }
-            0x3E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.rol(bus, Some(effective_address), 3, 7);
-            }
-            // ROR
-            0x6E => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.ror(bus, Some(effective_address), 3, 6);
-            }
-            0x66 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.ror(bus, Some(effective_address), 2, 5);
-            }
-            0x6A => {
-                // Accumulator addressing mode.
-                self.ror(bus, None, 1, 2);
-            }
-            0x76 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.ror(bus, Some(effective_address), 2, 6);
-            }
-            0x7E => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.ror(bus, Some(effective_address), 3, 7);
-            }
-            // RTI
-            0x40 => self.rti(bus, 6),
-            // RTS
-            0x60 => self.rts(bus, 6),
-            // SBC
-            0xE9 | 0xEB => {
-                let effective_address = self.resolve_address_immediate();
-                self.sbc(bus, effective_address, 2, 2);
-            }
-            0xED => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.sbc(bus, effective_address, 3, 4);
-            }
-            0xE5 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.sbc(bus, effective_address, 2, 3);
-            }
-            0xE1 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.sbc(bus, effective_address, 2, 6);
-            }
-            0xF1 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.sbc(bus, effective_address, 2, 5);
-            }
-            0xF5 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.sbc(bus, effective_address, 2, 4);
-            }
-            0xFD => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
-                self.sbc(bus, effective_address, 3, 4);
-            }
-            0xF9 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.sbc(bus, effective_address, 3, 4);
-            }
-            // SEC
-            0x38 => self.sec(1, 2),
-            // SED
-            0xF8 => self.sed(1, 2),
-            // SEI
-            0x78 => self.sei(1, 2),
-            // STA
-            0x8D => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.sta(bus, effective_address, 3, 4);
-            }
-            0x85 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.sta(bus, effective_address, 2, 3);
-            }
-            0x81 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.sta(bus, effective_address, 2, 6);
-            }
-            0x91 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
-                self.sta(bus, effective_address, 2, 6);
-            }
-            0x95 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.sta(bus, effective_address, 2, 4);
-            }
-            0x9D => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.sta(bus, effective_address, 3, 5);
-            }
-            0x99 => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.sta(bus, effective_address, 3, 5);
-            }
-            // STX
-            0x8E => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.stx(bus, effective_address, 3, 4);
-            }
-            0x86 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.stx(bus, effective_address, 2, 3);
-            }
-            0x96 => {
-                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
-                self.stx(bus, effective_address, 2, 4);
-            }
-            // STY
-            0x8C => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.sty(bus, effective_address, 3, 4);
-            }
-            0x84 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.sty(bus, effective_address, 2, 3);
-            }
-            0x94 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.sty(bus, effective_address, 2, 4);
-            }
-            // TAX
-            0xAA => self.tax(1, 2),
-            // TAY
-            0xA8 => self.tay(1, 2),
-            // TSX
-            0xBA => self.tsx(1, 2),
-            // TXA
-            0x8A => self.txa(1, 2),
-            // TXS
-            0x9A => self.txs(1, 2),
-            // TYA
-            0x98 => self.tya(1, 2),
-            // "Illegal" NOP
-            0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => self.nop(1, 2),
-            0x80 | 0x82 | 0x89 | 0xC2 | 0xE2 => self.nop(2, 2),
-            0x04 | 0x44 | 0x64 => self.nop(2, 3),
-            0x14 | 0x34 | 0x54 | 0x74 | 0xD4 | 0xF4 => self.nop(2, 4),
-            0x0C => self.nop(3, 4),
-            0x1C | 0x3C | 0x5C | 0x7C | 0xDC | 0xFC => {
-                let _ = self.resolve_address_indexed_absolute_x(bus, true);
-                self.nop(3, 4);
-            }
-            // "Illegal" LAX
-            0xA7 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.lax(bus, effective_address, 2, 3);
-            }
-            0xB7 => {
-                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
-                self.lax(bus, effective_address, 2, 4);
-            }
-            0xAF => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.lax(bus, effective_address, 3, 4);
-            }
-            0xBF => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
-                self.lax(bus, effective_address, 3, 4);
-            }
-            0xA3 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.lax(bus, effective_address, 2, 6);
-            }
-            0xB3 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
-                self.lax(bus, effective_address, 2, 5);
-            }
-            // "Illegal" SAX
-            0x87 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.sax(bus, effective_address, 2, 3);
-            }
-            0x97 => {
-                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
-                self.sax(bus, effective_address, 2, 4);
-            }
-            0x8F => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.sax(bus, effective_address, 3, 4);
-            }
-            0x83 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.sax(bus, effective_address, 2, 6);
-            }
-            // "Illegal" DCP
-            0xC7 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.dcp(bus, effective_address, 2, 5);
-            }
-            0xD7 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.dcp(bus, effective_address, 2, 6);
-            }
-            0xCF => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.dcp(bus, effective_address, 3, 6);
-            }
-            0xDF => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.dcp(bus, effective_address, 3, 7);
-            }
-            0xDB => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.dcp(bus, effective_address, 3, 7);
-            }
-            0xC3 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.dcp(bus, effective_address, 2, 8);
-            }
-            0xD3 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
-                self.dcp(bus, effective_address, 2, 8);
-            }
-            // "Illegal" ISC
-            0xE7 => {
-                let effective_address = self.resolve_address_zero_page(bus);
-                self.isc(bus, effective_address, 2, 5);
-            }
-            0xF7 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.isc(bus, effective_address, 2, 6);
-            }
-            0xEF => {
-                let effective_address = self.resolve_address_absolute(bus);
-                self.isc(bus, effective_address, 3, 6);
-            }
-            0xFF => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.isc(bus, effective_address, 3, 7);
-            }
-            0xFB => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.isc(bus, effective_address, 3, 7);
-            }
-            0xE3 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.isc(bus, effective_address, 2, 8);
-            }
-            0xF3 => {
-                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
-                self.isc(bus, effective_address, 2, 8);
-            }
-            // "Illegal" SLO
             0x07 => {
                 let effective_address = self.resolve_address_zero_page(bus);
                 self.slo(bus, effective_address, 2, 5);
             }
-            0x17 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.slo(bus, effective_address, 2, 6);
+            0x08 => self.php(bus, 1, 3),
+            0x09 => {
+                let effective_address = self.resolve_address_immediate();
+                self.ora(bus, effective_address, 2, 2);
+            }
+            0x0A => {
+                // Accumulator addressing mode.
+                self.asl(bus, None, 1, 2);
+            }
+            0x0B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x0C => self.nop(3, 4),
+            0x0D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ora(bus, effective_address, 3, 4);
+            }
+            0x0E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.asl(bus, Some(effective_address), 3, 6);
             }
             0x0F => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.slo(bus, effective_address, 3, 6);
             }
-            0x1F => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.slo(bus, effective_address, 3, 7);
+            0x10 => self.bpl(bus, 2, 2),
+            0x11 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.ora(bus, effective_address, 2, 5);
             }
-            0x1B => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.slo(bus, effective_address, 3, 7);
-            }
-            0x03 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.slo(bus, effective_address, 2, 8);
-            }
+            0x12 => self.jam(),
             0x13 => {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.slo(bus, effective_address, 2, 8);
             }
-            // "Illegal" RLA
+            0x14 => self.nop(2, 4),
+            0x15 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.ora(bus, effective_address, 2, 4);
+            }
+            0x16 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.asl(bus, Some(effective_address), 2, 6);
+            }
+            0x17 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.slo(bus, effective_address, 2, 6);
+            }
+            0x18 => self.clc(1, 2),
+            0x19 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.ora(bus, effective_address, 3, 4);
+            }
+            0x1A => self.nop(1, 2),
+            0x1B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.slo(bus, effective_address, 3, 7);
+            }
+            0x1C => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            0x1D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.ora(bus, effective_address, 3, 4);
+            }
+            0x1E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.asl(bus, Some(effective_address), 3, 7);
+            }
+            0x1F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.slo(bus, effective_address, 3, 7);
+            }
+            0x20 => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.jsr(bus, effective_address, 3, 6);
+            }
+            0x21 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.and(bus, effective_address, 2, 6);
+            }
+            0x22 => self.jam(),
+            0x23 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.rla(bus, effective_address, 2, 8);
+            }
+            0x24 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.bit(bus, effective_address, 2, 3);
+            }
+            0x25 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.and(bus, effective_address, 2, 3);
+            }
+            0x26 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.rol(bus, Some(effective_address), 2, 5);
+            }
             0x27 => {
                 let effective_address = self.resolve_address_zero_page(bus);
                 self.rla(bus, effective_address, 2, 5);
             }
-            0x37 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.rla(bus, effective_address, 2, 6);
+            0x28 => self.plp(bus, 1, 4),
+            0x29 => {
+                let effective_address = self.resolve_address_immediate();
+                self.and(bus, effective_address, 2, 2);
+            }
+            0x2A => {
+                // Accumulator addressing mode.
+                self.rol(bus, None, 1, 2);
+            }
+            0x2B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x2C => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.bit(bus, effective_address, 3, 4);
+            }
+            0x2D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.and(bus, effective_address, 3, 4);
+            }
+            0x2E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.rol(bus, Some(effective_address), 3, 6);
             }
             0x2F => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.rla(bus, effective_address, 3, 6);
             }
-            0x3F => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.rla(bus, effective_address, 3, 7);
+            0x30 => self.bmi(bus, 2, 2),
+            0x31 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.and(bus, effective_address, 2, 5);
             }
-            0x3B => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.rla(bus, effective_address, 3, 7);
-            }
-            0x23 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.rla(bus, effective_address, 2, 8);
-            }
+            0x32 => self.jam(),
             0x33 => {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.rla(bus, effective_address, 2, 8);
             }
-            // "Illegal" SRE
+            0x34 => self.nop(2, 4),
+            0x35 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.and(bus, effective_address, 2, 4);
+            }
+            0x36 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.rol(bus, Some(effective_address), 2, 6);
+            }
+            0x37 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.rla(bus, effective_address, 2, 6);
+            }
+            0x38 => self.sec(1, 2),
+            0x39 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.and(bus, effective_address, 3, 4);
+            }
+            0x3A => self.nop(1, 2),
+            0x3B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.rla(bus, effective_address, 3, 7);
+            }
+            0x3C => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            0x3D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.and(bus, effective_address, 3, 4);
+            }
+            0x3E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.rol(bus, Some(effective_address), 3, 7);
+            }
+            0x3F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.rla(bus, effective_address, 3, 7);
+            }
+            0x40 => self.rti(bus, 6),
+            0x41 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.eor(bus, effective_address, 2, 6);
+            }
+            0x42 => self.jam(),
+            0x43 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sre(bus, effective_address, 2, 8);
+            }
+            0x44 => self.nop(2, 3),
+            0x45 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.eor(bus, effective_address, 2, 3);
+            }
+            0x46 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.lsr(bus, Some(effective_address), 2, 5);
+            }
             0x47 => {
                 let effective_address = self.resolve_address_zero_page(bus);
                 self.sre(bus, effective_address, 2, 5);
             }
-            0x57 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.sre(bus, effective_address, 2, 6);
+            0x48 => self.pha(bus, 1, 3),
+            0x49 => {
+                let effective_address = self.resolve_address_immediate();
+                self.eor(bus, effective_address, 2, 2);
+            }
+            0x4A => {
+                // Accumulator addressing mode.
+                self.lsr(bus, None, 1, 2);
+            }
+            0x4B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x4C => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.jmp(effective_address, 3)
+            }
+            0x4D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.eor(bus, effective_address, 3, 4);
+            }
+            0x4E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.lsr(bus, Some(effective_address), 3, 6);
             }
             0x4F => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.sre(bus, effective_address, 3, 6);
             }
-            0x5F => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.sre(bus, effective_address, 3, 7);
+            0x50 => self.bvc(bus, 2, 2),
+            0x51 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.eor(bus, effective_address, 2, 5);
             }
-            0x5B => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.sre(bus, effective_address, 3, 7);
-            }
-            0x43 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.sre(bus, effective_address, 2, 8);
-            }
+            0x52 => self.jam(),
             0x53 => {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.sre(bus, effective_address, 2, 8);
             }
-            // "Illegal" RRA
+            0x54 => self.nop(2, 4),
+            0x55 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.eor(bus, effective_address, 2, 4);
+            }
+            0x56 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.lsr(bus, Some(effective_address), 2, 6);
+            }
+            0x57 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sre(bus, effective_address, 2, 6);
+            }
+            0x58 => self.cli(1, 2),
+            0x59 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.eor(bus, effective_address, 3, 4);
+            }
+            0x5A => self.nop(1, 2),
+            0x5B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.sre(bus, effective_address, 3, 7);
+            }
+            0x5C => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            0x5D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.eor(bus, effective_address, 3, 4);
+            }
+            0x5E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.lsr(bus, Some(effective_address), 3, 7);
+            }
+            0x5F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.sre(bus, effective_address, 3, 7);
+            }
+            0x60 => self.rts(bus, 6),
+            0x61 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.adc(bus, effective_address, 2, 6)
+            }
+            0x62 => self.jam(),
+            0x63 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.rra(bus, effective_address, 2, 8);
+            }
+            0x64 => self.nop(2, 3),
+            0x65 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.adc(bus, effective_address, 2, 3)
+            }
+            0x66 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ror(bus, Some(effective_address), 2, 5);
+            }
             0x67 => {
                 let effective_address = self.resolve_address_zero_page(bus);
                 self.rra(bus, effective_address, 2, 5);
             }
-            0x77 => {
-                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
-                self.rra(bus, effective_address, 2, 6);
+            0x68 => self.pla(bus, 1, 4),
+            0x69 => {
+                let effective_address = self.resolve_address_immediate();
+                self.adc(bus, effective_address, 2, 2)
+            }
+            0x6A => {
+                // Accumulator addressing mode.
+                self.ror(bus, None, 1, 2);
+            }
+            0x6B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x6C => {
+                let effective_address = self.resolve_address_absolute_indirect(bus);
+                self.jmp(effective_address, 5)
+            }
+            0x6D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.adc(bus, effective_address, 3, 4)
+            }
+            0x6E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ror(bus, Some(effective_address), 3, 6);
             }
             0x6F => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.rra(bus, effective_address, 3, 6);
             }
-            0x7F => {
-                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
-                self.rra(bus, effective_address, 3, 7);
+            0x70 => self.bvs(bus, 2, 2),
+            0x71 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.adc(bus, effective_address, 2, 5);
             }
-            0x7B => {
-                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
-                self.rra(bus, effective_address, 3, 7);
-            }
-            0x63 => {
-                let effective_address = self.resolve_address_indexed_indirect_x(bus);
-                self.rra(bus, effective_address, 2, 8);
-            }
+            0x72 => self.jam(),
             0x73 => {
                 let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
                 self.rra(bus, effective_address, 2, 8);
             }
-            0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xB2 | 0xD2 | 0xF2 => {
-                self.jam()
+            0x74 => self.nop(2, 4),
+            0x75 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.adc(bus, effective_address, 2, 4)
             }
-            _ => {
-                self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode));
+            0x76 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.ror(bus, Some(effective_address), 2, 6);
+            }
+            0x77 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.rra(bus, effective_address, 2, 6);
+            }
+            0x78 => self.sei(1, 2),
+            0x79 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.adc(bus, effective_address, 3, 4);
+            }
+            0x7A => self.nop(1, 2),
+            0x7B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.rra(bus, effective_address, 3, 7);
+            }
+            0x7C => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            0x7D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.adc(bus, effective_address, 3, 4);
+            }
+            0x7E => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.ror(bus, Some(effective_address), 3, 7);
+            }
+            0x7F => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.rra(bus, effective_address, 3, 7);
+            }
+            0x80 => self.nop(2, 2),
+            0x81 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sta(bus, effective_address, 2, 6);
+            }
+            0x82 => self.nop(2, 2),
+            0x83 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sax(bus, effective_address, 2, 6);
+            }
+            0x84 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sty(bus, effective_address, 2, 3);
+            }
+            0x85 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sta(bus, effective_address, 2, 3);
+            }
+            0x86 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.stx(bus, effective_address, 2, 3);
+            }
+            0x87 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sax(bus, effective_address, 2, 3);
+            }
+            0x88 => self.dey(1, 2),
+            0x89 => self.nop(2, 2),
+            0x8A => self.txa(1, 2),
+            0x8B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x8C => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sty(bus, effective_address, 3, 4);
+            }
+            0x8D => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sta(bus, effective_address, 3, 4);
+            }
+            0x8E => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.stx(bus, effective_address, 3, 4);
+            }
+            0x8F => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sax(bus, effective_address, 3, 4);
+            }
+            0x90 => self.bcc(bus, 2, 2),
+            0x91 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.sta(bus, effective_address, 2, 6);
+            }
+            0x92 => self.jam(),
+            0x93 => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x94 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sty(bus, effective_address, 2, 4);
+            }
+            0x95 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sta(bus, effective_address, 2, 4);
+            }
+            0x96 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.stx(bus, effective_address, 2, 4);
+            }
+            0x97 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.sax(bus, effective_address, 2, 4);
+            }
+            0x98 => self.tya(1, 2),
+            0x99 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.sta(bus, effective_address, 3, 5);
+            }
+            0x9A => self.txs(1, 2),
+            0x9B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x9C => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x9D => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.sta(bus, effective_address, 3, 5);
+            }
+            0x9E => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x9F => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xA0 => {
+                let effective_address = self.resolve_address_immediate();
+                self.ldy(bus, effective_address, 2, 2);
+            }
+            0xA1 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.lda(bus, effective_address, 2, 6);
+            }
+            0xA2 => {
+                let effective_address = self.resolve_address_immediate();
+                self.ldx(bus, effective_address, 2, 2);
+            }
+            0xA3 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.lax(bus, effective_address, 2, 6);
+            }
+            0xA4 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ldy(bus, effective_address, 2, 3);
+            }
+            0xA5 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.lda(bus, effective_address, 2, 3);
+            }
+            0xA6 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.ldx(bus, effective_address, 2, 3);
+            }
+            0xA7 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.lax(bus, effective_address, 2, 3);
+            }
+            0xA8 => self.tay(1, 2),
+            0xA9 => {
+                let effective_address = self.resolve_address_immediate();
+                self.lda(bus, effective_address, 2, 2);
+            }
+            0xAA => self.tax(1, 2),
+            0xAB => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xAC => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ldy(bus, effective_address, 3, 4);
+            }
+            0xAD => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.lda(bus, effective_address, 3, 4);
+            }
+            0xAE => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.ldx(bus, effective_address, 3, 4);
+            }
+            0xAF => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.lax(bus, effective_address, 3, 4);
+            }
+            0xB0 => self.bcs(bus, 2, 2),
+            0xB1 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.lda(bus, effective_address, 2, 5);
+            }
+            0xB2 => self.jam(),
+            0xB3 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.lax(bus, effective_address, 2, 5);
+            }
+            0xB4 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.ldy(bus, effective_address, 2, 4);
+            }
+            0xB5 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.lda(bus, effective_address, 2, 4);
+            }
+            0xB6 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.ldx(bus, effective_address, 2, 4);
+            }
+            0xB7 => {
+                let effective_address = self.resolve_address_indexed_zero_page_y(bus);
+                self.lax(bus, effective_address, 2, 4);
+            }
+            0xB8 => self.clv(1, 2),
+            0xB9 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.lda(bus, effective_address, 3, 4);
+            }
+            0xBA => self.tsx(1, 2),
+            0xBB => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xBC => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.ldy(bus, effective_address, 3, 4);
+            }
+            0xBD => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.lda(bus, effective_address, 3, 4);
+            }
+            0xBE => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.ldx(bus, effective_address, 3, 4);
+            }
+            0xBF => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.lax(bus, effective_address, 3, 4);
+            }
+            0xC0 => {
+                let effective_address = self.resolve_address_immediate();
+                self.cpy(bus, effective_address, 2, 2);
+            }
+            0xC1 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.cmp(bus, effective_address, 2, 6);
+            }
+            0xC2 => self.nop(2, 2),
+            0xC3 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.dcp(bus, effective_address, 2, 8);
+            }
+            0xC4 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.cpy(bus, effective_address, 2, 3);
+            }
+            0xC5 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.cmp(bus, effective_address, 2, 3);
+            }
+            0xC6 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.dec(bus, effective_address, 2, 5);
+            }
+            0xC7 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.dcp(bus, effective_address, 2, 5);
+            }
+            0xC8 => self.iny(1, 2),
+            0xC9 => {
+                let effective_address = self.resolve_address_immediate();
+                self.cmp(bus, effective_address, 2, 2);
+            }
+            0xCA => self.dex(1, 2),
+            0xCB => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xCC => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.cpy(bus, effective_address, 3, 4);
+            }
+            0xCD => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.cmp(bus, effective_address, 3, 4);
+            }
+            0xCE => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.dec(bus, effective_address, 3, 6);
+            }
+            0xCF => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.dcp(bus, effective_address, 3, 6);
+            }
+            0xD0 => self.bne(bus, 2, 2),
+            0xD1 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.cmp(bus, effective_address, 2, 5);
+            }
+            0xD2 => self.jam(),
+            0xD3 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.dcp(bus, effective_address, 2, 8);
+            }
+            0xD4 => self.nop(2, 4),
+            0xD5 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.cmp(bus, effective_address, 2, 4);
+            }
+            0xD6 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.dec(bus, effective_address, 2, 6);
+            }
+            0xD7 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.dcp(bus, effective_address, 2, 6);
+            }
+            0xD8 => self.cld(1, 2),
+            0xD9 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.cmp(bus, effective_address, 3, 4);
+            }
+            0xDA => self.nop(1, 2),
+            0xDB => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.dcp(bus, effective_address, 3, 7);
+            }
+            0xDC => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            0xDD => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.cmp(bus, effective_address, 3, 4);
+            }
+            0xDE => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.dec(bus, effective_address, 3, 7);
+            }
+            0xDF => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.dcp(bus, effective_address, 3, 7);
+            }
+            0xE0 => {
+                let effective_address = self.resolve_address_immediate();
+                self.cpx(bus, effective_address, 2, 2);
+            }
+            0xE1 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.sbc(bus, effective_address, 2, 6);
+            }
+            0xE2 => self.nop(2, 2),
+            0xE3 => {
+                let effective_address = self.resolve_address_indexed_indirect_x(bus);
+                self.isc(bus, effective_address, 2, 8);
+            }
+            0xE4 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.cpx(bus, effective_address, 2, 3);
+            }
+            0xE5 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.sbc(bus, effective_address, 2, 3);
+            }
+            0xE6 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.inc(bus, effective_address, 2, 5);
+            }
+            0xE7 => {
+                let effective_address = self.resolve_address_zero_page(bus);
+                self.isc(bus, effective_address, 2, 5);
+            }
+            0xE8 => self.inx(1, 2),
+            0xE9 => {
+                let effective_address = self.resolve_address_immediate();
+                self.sbc(bus, effective_address, 2, 2);
+            }
+            0xEA => self.nop(1, 2),
+            0xEB => {
+                let effective_address = self.resolve_address_immediate();
+                self.sbc(bus, effective_address, 2, 2);
+            }
+            0xEC => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.cpx(bus, effective_address, 3, 4);
+            }
+            0xED => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.sbc(bus, effective_address, 3, 4);
+            }
+            0xEE => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.inc(bus, effective_address, 3, 6);
+            }
+            0xEF => {
+                let effective_address = self.resolve_address_absolute(bus);
+                self.isc(bus, effective_address, 3, 6);
+            }
+            0xF0 => self.beq(bus, 2, 2),
+            0xF1 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, true);
+                self.sbc(bus, effective_address, 2, 5);
+            }
+            0xF2 => self.jam(),
+            0xF3 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.isc(bus, effective_address, 2, 8);
+            }
+            0xF4 => self.nop(2, 4),
+            0xF5 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.sbc(bus, effective_address, 2, 4);
+            }
+            0xF6 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.inc(bus, effective_address, 2, 6);
+            }
+            0xF7 => {
+                let effective_address = self.resolve_address_indexed_zero_page_x(bus);
+                self.isc(bus, effective_address, 2, 6);
+            }
+            0xF8 => self.sed(1, 2),
+            0xF9 => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.sbc(bus, effective_address, 3, 4);
+            }
+            0xFA => self.nop(1, 2),
+            0xFB => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.isc(bus, effective_address, 3, 7);
+            }
+            0xFC => {
+                let _ = self.resolve_address_indexed_absolute_x(bus, true);
+                self.nop(3, 4);
+            }
+            0xFD => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
+                self.sbc(bus, effective_address, 3, 4);
+            }
+            0xFE => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.inc(bus, effective_address, 3, 7);
+            }
+            0xFF => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.isc(bus, effective_address, 3, 7);
             }
         };
 
