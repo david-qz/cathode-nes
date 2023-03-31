@@ -119,7 +119,10 @@ impl CPU {
                 // Accumulator addressing mode.
                 self.asl(bus, None, 1, 2);
             }
-            0x0B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x0B => {
+                let effective_address = self.resolve_address_immediate();
+                self.anc(bus, effective_address, 2, 2);
+            }
             0x0C => self.nop(3, 4),
             0x0D => {
                 let effective_address = self.resolve_address_absolute(bus);
@@ -220,7 +223,10 @@ impl CPU {
                 // Accumulator addressing mode.
                 self.rol(bus, None, 1, 2);
             }
-            0x2B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x2B => {
+                let effective_address = self.resolve_address_immediate();
+                self.anc(bus, effective_address, 2, 2);
+            }
             0x2C => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.bit(bus, effective_address, 3, 4);
@@ -318,7 +324,10 @@ impl CPU {
                 // Accumulator addressing mode.
                 self.lsr(bus, None, 1, 2);
             }
-            0x4B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x4B => {
+                let effective_address = self.resolve_address_immediate();
+                self.alr(bus, effective_address, 2, 2);
+            }
             0x4C => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.jmp(effective_address, 3)
@@ -416,7 +425,10 @@ impl CPU {
                 // Accumulator addressing mode.
                 self.ror(bus, None, 1, 2);
             }
-            0x6B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x6B => {
+                let effective_address = self.resolve_address_immediate();
+                self.arr(bus, effective_address, 2, 2);
+            }
             0x6C => {
                 let effective_address = self.resolve_address_absolute_indirect(bus);
                 self.jmp(effective_address, 5)
@@ -511,7 +523,10 @@ impl CPU {
             0x88 => self.dey(1, 2),
             0x89 => self.nop(2, 2),
             0x8A => self.txa(1, 2),
-            0x8B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x8B => {
+                let effective_address = self.resolve_address_immediate();
+                self.xaa(bus, effective_address, 2, 2);
+            }
             0x8C => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.sty(bus, effective_address, 3, 4);
@@ -534,7 +549,10 @@ impl CPU {
                 self.sta(bus, effective_address, 2, 6);
             }
             0x92 => self.jam(),
-            0x93 => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x93 => {
+                let effective_address = self.resolve_address_indirect_indexed_y(bus, false);
+                self.sha(bus, effective_address, 2, 6);
+            }
             0x94 => {
                 let effective_address = self.resolve_address_indexed_zero_page_x(bus);
                 self.sty(bus, effective_address, 2, 4);
@@ -557,14 +575,26 @@ impl CPU {
                 self.sta(bus, effective_address, 3, 5);
             }
             0x9A => self.txs(1, 2),
-            0x9B => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
-            0x9C => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x9B => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.tas(bus, effective_address, 3, 5);
+            }
+            0x9C => {
+                let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
+                self.shy(bus, effective_address, 3, 5);
+            }
             0x9D => {
                 let effective_address = self.resolve_address_indexed_absolute_x(bus, false);
                 self.sta(bus, effective_address, 3, 5);
             }
-            0x9E => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
-            0x9F => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0x9E => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.shx(bus, effective_address, 3, 5);
+            }
+            0x9F => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, false);
+                self.sha(bus, effective_address, 3, 5);
+            }
             0xA0 => {
                 let effective_address = self.resolve_address_immediate();
                 self.ldy(bus, effective_address, 2, 2);
@@ -603,7 +633,10 @@ impl CPU {
                 self.lda(bus, effective_address, 2, 2);
             }
             0xAA => self.tax(1, 2),
-            0xAB => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xAB => {
+                let effective_address = self.resolve_address_immediate();
+                self.lxa(bus, effective_address, 2, 2);
+            }
             0xAC => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.ldy(bus, effective_address, 3, 4);
@@ -652,7 +685,10 @@ impl CPU {
                 self.lda(bus, effective_address, 3, 4);
             }
             0xBA => self.tsx(1, 2),
-            0xBB => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xBB => {
+                let effective_address = self.resolve_address_indexed_absolute_y(bus, true);
+                self.las(bus, effective_address, 3, 4);
+            }
             0xBC => {
                 let effective_address = self.resolve_address_indexed_absolute_x(bus, true);
                 self.ldy(bus, effective_address, 3, 4);
@@ -704,7 +740,10 @@ impl CPU {
                 self.cmp(bus, effective_address, 2, 2);
             }
             0xCA => self.dex(1, 2),
-            0xCB => self.panic_with_backtrace(&format!("Unknown opcode: 0x{:X}", opcode)),
+            0xCB => {
+                let effective_address = self.resolve_address_immediate();
+                self.sbx(bus, effective_address, 2, 2);
+            }
             0xCC => {
                 let effective_address = self.resolve_address_absolute(bus);
                 self.cpy(bus, effective_address, 3, 4);
@@ -877,13 +916,6 @@ impl CPU {
         };
 
         self.total_cycles - cycles_at_start
-    }
-
-    fn panic_with_backtrace(&self, message: &str) {
-        if let Some(debugger) = &self.debugger {
-            debugger.borrow().dump_backtrace();
-        }
-        panic!("{}", message)
     }
 
     #[inline(always)]
@@ -1673,6 +1705,114 @@ impl CPU {
     fn rra(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
         self.ror(bus, Some(address), 0, 0);
         self.adc(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation ANC: AND + set carry flag from bit 7
+    fn anc(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.and(bus, address, 0, 0);
+        self.carry = self.negative; // AND will set negative flag from bit 7
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation ALR: AND + LSR
+    fn alr(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.and(bus, address, 0, 0);
+        self.lsr(bus, None, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation ARR: AND + ROR
+    fn arr(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.and(bus, address, 0, 0);
+        self.ror(bus, None, 0, 0);
+
+        self.carry = self.a & (1 << 6) != 0;
+        self.overflow = self.a & (1 << 6) ^ self.a & (1 << 5) != 0;
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation XAA: AND X + AND oper
+    fn xaa(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.a = self.a & self.x;
+        self.and(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation LXA: Store * AND oper in A and X
+    fn lxa(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.and(bus, address, 0, 0);
+        self.x = self.a;
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SHA: Store A AND X AND (high-byte of address + 1) at address
+    fn sha(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let result = self.a & self.x & ((address >> 8) as u8).wrapping_add(1);
+        bus.write_byte(address, result);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SHX: Store X AND (high-byte of address + 1) at address
+    fn shx(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let result = self.x & ((address >> 8) as u8).wrapping_add(1);
+        bus.write_byte(address, result);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SHY: Store Y AND (high-byte of address + 1) at address
+    fn shy(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let result = self.y & ((address >> 8) as u8).wrapping_add(1);
+        bus.write_byte(address, result);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation TAS: Puts A AND X in SP and stores A AND X AND (high-byte of addr. + 1) at addr.
+    fn tas(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        self.s = self.a & self.x;
+        self.sha(bus, address, 0, 0);
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation LAS: M AND SP -> A, X, SP
+    fn las(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let value = bus.read_byte(address);
+        let result = value & self.s;
+        self.a = result;
+        self.x = result;
+        self.s = result;
+
+        self.pc += length;
+        self.total_cycles += cycles;
+    }
+
+    // "Illegal" operation SBX: (A AND X) - oper -> X
+    fn sbx(&mut self, bus: &mut dyn Bus16, address: u16, length: u16, cycles: u64) {
+        let value = bus.read_byte(address);
+        let intermediate = self.a & self.x;
+
+        self.x = intermediate.wrapping_sub(value);
+        self.compare_value(intermediate, self.x);
 
         self.pc += length;
         self.total_cycles += cycles;
