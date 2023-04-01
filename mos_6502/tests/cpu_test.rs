@@ -32,7 +32,7 @@ fn klaus_functional_test_no_decimal() {
     let mut cpu = CPU::new();
     cpu.reset(&mut memory);
 
-    let debugger = Rc::new(RefCell::new(Debugger::new(None)));
+    let debugger = Rc::new(RefCell::new(Debugger::new()));
     cpu.attach_debugger(Rc::clone(&debugger));
 
     let mut last_pc = cpu.pc;

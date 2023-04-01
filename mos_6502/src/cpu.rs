@@ -80,7 +80,7 @@ impl CPU {
         }
 
         if let Some(debugger) = &self.debugger {
-            debugger.borrow_mut().record_state(&self, bus);
+            debugger.borrow_mut().record_state(self.current_state(bus));
         }
 
         let cycles_at_start = self.total_cycles;

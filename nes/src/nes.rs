@@ -56,7 +56,7 @@ impl NES {
     }
 
     pub fn enable_debugger(&mut self) {
-        let debugger = Rc::new(RefCell::new(Debugger::new(None)));
+        let debugger = Rc::new(RefCell::new(Debugger::new()));
         self.cpu.attach_debugger(Rc::clone(&debugger));
         self.debugger = Some(debugger);
     }

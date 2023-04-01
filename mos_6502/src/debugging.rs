@@ -2,27 +2,25 @@ use crate::{cpu::CPU, disassembly::Instruction, memory::Bus16};
 use std::collections::VecDeque;
 
 pub struct Debugger {
-    states: VecDeque<ExecutionState>,
-    backtrace_limit: usize,
+    pub states: VecDeque<ExecutionState>,
+    pub backtrace_limit: usize,
 }
 
 impl Debugger {
     const DEFAULT_BACKTRACE_LIMIT: usize = 20;
 
-    pub fn new(backtrace_limit: Option<usize>) -> Self {
-        let limit = backtrace_limit.unwrap_or(Self::DEFAULT_BACKTRACE_LIMIT);
-
+    pub fn new() -> Self {
         Self {
-            states: VecDeque::with_capacity(limit),
-            backtrace_limit: limit,
+            states: VecDeque::new(),
+            backtrace_limit: Self::DEFAULT_BACKTRACE_LIMIT,
         }
     }
 
-    pub fn record_state(&mut self, cpu: &CPU, bus: &mut dyn Bus16) {
-        if self.states.len() == self.backtrace_limit {
+    pub fn record_state(&mut self, state: ExecutionState) {
+        while self.states.len() >= self.backtrace_limit {
             self.states.pop_front();
         }
-        self.states.push_back(ExecutionState::new(cpu, bus));
+        self.states.push_back(state);
     }
 
     pub fn dump_backtrace(&self) {
