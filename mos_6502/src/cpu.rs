@@ -74,6 +74,14 @@ impl CPU {
         self.total_cycles += 7;
     }
 
+    pub fn nmi(&mut self, bus: &mut dyn Bus16) {
+        self.push_word(bus, self.pc);
+        self.push_byte(bus, self.encode_p(false));
+        self.irq_disable = true;
+        self.pc = bus.read_word(Self::NMI_VECTOR);
+        self.total_cycles += 7;
+    }
+
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
         if self.jammed {
             return 1;
