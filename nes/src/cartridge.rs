@@ -4,11 +4,11 @@ use crate::{
 };
 
 pub trait Cartridge {
-    fn read_cpu_byte(&mut self, address: u16) -> u8;
-    fn write_cpu_byte(&mut self, address: u16, value: u8);
+    fn cpu_read(&mut self, address: u16) -> u8;
+    fn cpu_write(&mut self, address: u16, value: u8);
 
-    fn read_ppu_byte(&mut self, address: u16) -> u8;
-    fn write_ppu_byte(&mut self, address: u16, value: u8);
+    fn ppu_read(&mut self, address: u16) -> u8;
+    fn ppu_write(&mut self, address: u16, value: u8);
 }
 
 impl dyn Cartridge {
@@ -31,21 +31,27 @@ impl dyn Cartridge {
     }
 }
 
+impl Default for Box<dyn Cartridge> {
+    fn default() -> Self {
+        Box::new(EmptyCartridgeSlot)
+    }
+}
+
 pub struct EmptyCartridgeSlot;
 
 #[allow(unused_variables)]
 impl Cartridge for EmptyCartridgeSlot {
-    fn read_cpu_byte(&mut self, address: u16) -> u8 {
+    fn cpu_read(&mut self, address: u16) -> u8 {
         0
     }
 
-    fn write_cpu_byte(&mut self, address: u16, value: u8) {}
+    fn cpu_write(&mut self, address: u16, value: u8) {}
 
-    fn read_ppu_byte(&mut self, address: u16) -> u8 {
+    fn ppu_read(&mut self, address: u16) -> u8 {
         0
     }
 
-    fn write_ppu_byte(&mut self, address: u16, value: u8) {}
+    fn ppu_write(&mut self, address: u16, value: u8) {}
 }
 
 struct NROM<const PRG_ROM_SIZE: usize> {
@@ -75,7 +81,7 @@ impl<const PRG_ROM_SIZE: usize> NROM<PRG_ROM_SIZE> {
 }
 
 impl<const PRG_ROM_SIZE: usize> Cartridge for NROM<PRG_ROM_SIZE> {
-    fn read_cpu_byte(&mut self, address: u16) -> u8 {
+    fn cpu_read(&mut self, address: u16) -> u8 {
         match address {
             0x6000..=0x7FFF => {
                 if let Some(prg_ram) = &self.prg_ram {
@@ -85,11 +91,11 @@ impl<const PRG_ROM_SIZE: usize> Cartridge for NROM<PRG_ROM_SIZE> {
                 }
             }
             0x8000.. => self.prg_rom[(address - 0x8000)],
-            _ => panic!("NROM: cartridge addressed outside valid range!"),
+            _ => panic!("Cartridge: cpu bus addressed outside valid range!"),
         }
     }
 
-    fn write_cpu_byte(&mut self, address: u16, value: u8) {
+    fn cpu_write(&mut self, address: u16, value: u8) {
         match address {
             0x6000..=0x7FFF => {
                 if let Some(prg_ram) = &mut self.prg_ram {
@@ -97,11 +103,11 @@ impl<const PRG_ROM_SIZE: usize> Cartridge for NROM<PRG_ROM_SIZE> {
                 }
             }
             0x8000.. => (),
-            _ => panic!("NROM: cartridge addressed outside valid range!"),
+            _ => panic!("Cartridge: cpu bus addressed outside valid range!"),
         }
     }
 
-    fn read_ppu_byte(&mut self, address: u16) -> u8 {
+    fn ppu_read(&mut self, address: u16) -> u8 {
         match address {
             0..=0x1FFF => self.chr_rom[address],
             0x2000..=0x2FFF => {
@@ -112,7 +118,7 @@ impl<const PRG_ROM_SIZE: usize> Cartridge for NROM<PRG_ROM_SIZE> {
         }
     }
 
-    fn write_ppu_byte(&mut self, address: u16, value: u8) {
+    fn ppu_write(&mut self, address: u16, value: u8) {
         match address {
             0..=0x1FFF => (), // Can't write to chr_rom.
             0x2000..=0x2FFF => {

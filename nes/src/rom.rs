@@ -55,7 +55,7 @@ impl INesHeader {
     }
 
     fn is_ines_2_header(&self) -> bool {
-        self.bytes[7] & (0x0C) == 8
+        self.bytes[7] & 0x0C == 8
     }
 }
 
@@ -124,14 +124,14 @@ impl RomFile {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mirroring {
     Horizontal,
     Vertical,
     FourScreen,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ConsoleType {
     Nes,
     VsSystem,
