@@ -1,7 +1,5 @@
-use std::{fs::File, io::Write, path::Path, time::Duration};
-
 use mos_6502::{debugging::ExecutionState, disassembly::Instruction};
-use nes::{cartridge::Cartridge, frame::Frame, nes::NES};
+use nes::{cartridge::Cartridge, nes::NES};
 
 #[test]
 fn nes_test_automated() {
@@ -59,43 +57,5 @@ fn parse_log_line(line: &str) -> ExecutionState {
         s,
         pc,
         cycle_number,
-    }
-}
-
-#[ignore]
-#[test]
-fn nes_test() {
-    fn write_frame_preview(frame: &Frame) {
-        let mut png_data: Vec<u8> = Vec::new();
-        let mut encoder =
-            png::Encoder::new(&mut png_data, Frame::WIDTH as u32, Frame::HEIGHT as u32);
-        encoder.set_color(png::ColorType::Rgb);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(frame.data_rgb8()).unwrap();
-        writer.finish().unwrap();
-
-        let path = Path::new("frame.png");
-        let mut file = File::create(path).unwrap();
-        file.write(&png_data).unwrap();
-    }
-
-    let bytes = std::fs::read("test-roms/nestest/nestest.nes").unwrap();
-    let cartridge = <dyn Cartridge>::load(bytes).unwrap();
-
-    let mut nes = NES::new();
-    nes.insert_cartridge(cartridge);
-    nes.enable_debugger();
-
-    let mut last_tick_in_vblank = false;
-    while !nes.jammed() {
-        nes.tick();
-
-        if !last_tick_in_vblank && nes.in_vblank() {
-            let frame = nes.borrow_frame();
-            write_frame_preview(frame);
-            std::thread::sleep(Duration::from_millis(16));
-        }
-        last_tick_in_vblank = nes.in_vblank();
     }
 }
