@@ -2,5 +2,6 @@
 
 members = [
     "mos_6502",
-    "nes"
+    "nes",
+    "nes_sdl"
 ]

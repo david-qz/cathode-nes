@@ -1,30 +1,34 @@
 pub struct Frame {
-    data: Vec<(u8, u8, u8)>,
+    data: Vec<u8>,
 }
 
 impl Frame {
     pub const WIDTH: usize = 256;
     pub const HEIGHT: usize = 240;
+    pub const BYTES_PER_PIXEL: usize = 3;
 
     pub fn new() -> Self {
         Self {
-            data: vec![(0, 0, 0); Frame::WIDTH * Frame::HEIGHT],
+            data: vec![0; Frame::WIDTH * Frame::HEIGHT * Frame::BYTES_PER_PIXEL],
         }
     }
 
     pub fn write(&mut self, x: usize, y: usize, rgb: (u8, u8, u8)) {
-        self.data[y * Frame::WIDTH + x] = rgb;
+        let base_idx = (y * Frame::WIDTH + x) * Frame::BYTES_PER_PIXEL;
+        self.data[base_idx + 0] = rgb.0;
+        self.data[base_idx + 1] = rgb.1;
+        self.data[base_idx + 2] = rgb.2;
     }
 
     pub fn data_rgb8(&self) -> &[u8] {
-        unsafe {
-            let ptr: *const u8 = std::mem::transmute(self.data.as_ptr());
-            let len: usize = self.data.len() * 3;
-            std::slice::from_raw_parts(ptr, len)
-        }
+        &self.data
     }
 
     pub fn clear_with(&mut self, rgb: (u8, u8, u8)) {
-        self.data.fill(rgb);
+        for base_idx in (0..self.data.len()).step_by(3) {
+            self.data[base_idx + 0] = rgb.0;
+            self.data[base_idx + 1] = rgb.1;
+            self.data[base_idx + 2] = rgb.2;
+        }
     }
 }
