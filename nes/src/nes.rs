@@ -83,6 +83,18 @@ impl NES {
         }
     }
 
+    pub fn advance_to_next_frame(&mut self) {
+        let mut last_in_vblank = self.in_vblank();
+        while !self.jammed() {
+            self.tick();
+            let in_vblank = self.in_vblank();
+            if !last_in_vblank && in_vblank {
+                return;
+            }
+            last_in_vblank = in_vblank;
+        }
+    }
+
     fn cpu_bus(&self) -> CpuBus {
         CpuBus {
             ram: Rc::clone(&self.ram),
