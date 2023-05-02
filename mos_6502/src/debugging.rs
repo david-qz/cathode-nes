@@ -43,6 +43,8 @@ pub struct ExecutionState {
 }
 
 impl ExecutionState {
+    // FIXME: This code might mutate the bus, which is not good. Perhaps there should be some way to peek at a value
+    //        at some bus address without causing a "read" on the associated device.
     pub fn new(cpu: &CPU, bus: &mut dyn Bus16) -> Self {
         let opcode = bus.read_byte(cpu.pc);
         let operand1 = bus.read_byte(cpu.pc + 1);
