@@ -59,7 +59,7 @@ impl CPU {
         self.debugger = None;
     }
 
-    pub fn current_state(&self, bus: &mut dyn Bus16) -> ExecutionState {
+    pub fn current_state(&self, bus: &dyn Bus16) -> ExecutionState {
         ExecutionState::new(self, bus)
     }
 

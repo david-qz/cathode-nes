@@ -4,6 +4,7 @@ use crate::{
 };
 
 pub trait Cartridge {
+    fn cpu_peek(&self, address: u16) -> u8;
     fn cpu_read(&mut self, address: u16) -> u8;
     fn cpu_write(&mut self, address: u16, value: u8);
 
@@ -41,17 +42,25 @@ pub struct EmptyCartridgeSlot;
 
 #[allow(unused_variables)]
 impl Cartridge for EmptyCartridgeSlot {
+    fn cpu_peek(&self, address: u16) -> u8 {
+        0
+    }
+
     fn cpu_read(&mut self, address: u16) -> u8 {
         0
     }
 
-    fn cpu_write(&mut self, address: u16, value: u8) {}
+    fn cpu_write(&mut self, address: u16, value: u8) {
+        ()
+    }
 
     fn ppu_read(&mut self, address: u16) -> u8 {
         0
     }
 
-    fn ppu_write(&mut self, address: u16, value: u8) {}
+    fn ppu_write(&mut self, address: u16, value: u8) {
+        ()
+    }
 }
 
 struct NROM<const PRG_ROM_SIZE: usize> {
@@ -81,6 +90,20 @@ impl<const PRG_ROM_SIZE: usize> NROM<PRG_ROM_SIZE> {
 }
 
 impl<const PRG_ROM_SIZE: usize> Cartridge for NROM<PRG_ROM_SIZE> {
+    fn cpu_peek(&self, address: u16) -> u8 {
+        match address {
+            0x6000..=0x7FFF => {
+                if let Some(prg_ram) = &self.prg_ram {
+                    prg_ram[address - 0x6000]
+                } else {
+                    0
+                }
+            }
+            0x8000.. => self.prg_rom[(address - 0x8000)],
+            _ => panic!("Cartridge: cpu bus addressed outside valid range!"),
+        }
+    }
+
     fn cpu_read(&mut self, address: u16) -> u8 {
         match address {
             0x6000..=0x7FFF => {

@@ -1,28 +1,26 @@
-pub struct PpuAddr {
-    address: u16,
-}
+pub struct PpuAddr(u16);
 
 impl PpuAddr {
     pub fn new() -> Self {
-        Self { address: 0 }
+        Self(0)
     }
 
-    pub fn write(&mut self, value: u8) {
-        self.address <<= 8;
-        self.address |= value as u16;
-        self.address &= 0x3FFF;
+    pub fn bits(&self) -> u16 {
+        self.0
     }
 
-    pub fn get(&self) -> u16 {
-        self.address
+    pub fn write(&mut self, byte: u8) {
+        self.0 <<= 8;
+        self.0 |= byte as u16;
+        self.0 &= 0x3FFF;
+    }
+
+    pub fn increment(&mut self, increment: u16) {
+        self.0 = self.0.wrapping_add(increment);
+        self.0 &= 0x3FFF;
     }
 
     pub fn reset_latch(&mut self) {
-        self.address = 0;
-    }
-
-    pub fn increment_address(&mut self, increment: u16) {
-        self.address = self.address.wrapping_add(increment);
-        self.address &= 0x3FFF;
+        self.0 = 0;
     }
 }

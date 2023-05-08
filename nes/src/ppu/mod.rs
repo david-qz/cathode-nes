@@ -2,16 +2,25 @@ mod palettes;
 mod registers;
 mod rendering;
 
-use self::{
-    palettes::NTSC_PALETTE,
-    registers::{OamAddr, PpuAddr, PpuCtrl, PpuMask, PpuScroll, PpuStatus},
-    rendering::{BackgroundSlice, Sprite},
-};
 use crate::{
     cartridge::Cartridge,
     frame::Frame,
     memory::{PaletteRam, Ram},
 };
+use palettes::NTSC_PALETTE;
+use registers::{OamAddr, PpuAddr, PpuCtrl, PpuMask, PpuScroll, PpuStatus};
+use rendering::{BackgroundSlice, Sprite};
+
+pub enum PpuRegister {
+    PpuCtrl,
+    PpuMask,
+    PpuStatus,
+    OamAddr,
+    OamData,
+    PpuScroll,
+    PpuAddr,
+    PpuData,
+}
 
 pub struct PPU {
     ppu_ctrl: PpuCtrl,
@@ -151,51 +160,131 @@ impl PPU {
             BackgroundSlice::new(lower_bit_plane, upper_bit_plane, palette_section);
     }
 
-    pub fn take_interrupt(&mut self) -> bool {
-        let interrupt = self.nmi_interrupt;
-        self.nmi_interrupt = false;
-        interrupt
+    pub fn in_vblank(&self) -> bool {
+        self.y >= PPU::VBLANK_START_SCANLINE
     }
 
-    pub fn write_ppu_ctrl(&mut self, value: u8) {
+    pub fn take_interrupt(&mut self) -> bool {
+        std::mem::take(&mut self.nmi_interrupt)
+    }
+
+    pub fn oam_dma(&mut self, oam_data: &[u8; 256]) {
+        self.oam.copy_from_slice(oam_data)
+    }
+
+    pub fn peek_register(&self, register: PpuRegister) -> u8 {
+        match register {
+            PpuRegister::PpuCtrl => 0,
+            PpuRegister::PpuMask => 0,
+            PpuRegister::PpuStatus => self.peek_ppu_status(),
+            PpuRegister::OamAddr => 0,
+            PpuRegister::OamData => self.peek_oam_data(),
+            PpuRegister::PpuScroll => 0,
+            PpuRegister::PpuAddr => 0,
+            PpuRegister::PpuData => self.peek_ppu_data(),
+        }
+    }
+
+    pub fn read_register(&mut self, cartridge: &mut dyn Cartridge, register: PpuRegister) -> u8 {
+        match register {
+            PpuRegister::PpuCtrl => 0,
+            PpuRegister::PpuMask => 0,
+            PpuRegister::PpuStatus => self.read_ppu_status(),
+            PpuRegister::OamAddr => 0,
+            PpuRegister::OamData => self.read_oam_data(),
+            PpuRegister::PpuScroll => 0,
+            PpuRegister::PpuAddr => 0,
+            PpuRegister::PpuData => self.read_ppu_data(cartridge),
+        }
+    }
+
+    pub fn write_register(
+        &mut self,
+        cartridge: &mut dyn Cartridge,
+        register: PpuRegister,
+        value: u8,
+    ) {
+        match register {
+            PpuRegister::PpuCtrl => self.write_ppu_ctrl(value),
+            PpuRegister::PpuMask => self.write_ppu_mask(value),
+            PpuRegister::PpuStatus => (),
+            PpuRegister::OamAddr => self.write_oam_addr(value),
+            PpuRegister::OamData => self.write_oam_data(value),
+            PpuRegister::PpuScroll => self.write_ppu_scroll(value),
+            PpuRegister::PpuAddr => self.write_ppu_addr(value),
+            PpuRegister::PpuData => self.write_ppu_data(cartridge, value),
+        }
+    }
+
+    // PPU_CTRL ($2000 > write)
+    fn write_ppu_ctrl(&mut self, value: u8) {
         self.ppu_ctrl.write(value);
     }
 
-    pub fn write_ppu_mask(&mut self, value: u8) {
+    // PPU_MASK ($2001 > write)
+    fn write_ppu_mask(&mut self, value: u8) {
         self.ppu_mask.write(value);
     }
 
-    pub fn read_ppu_status(&mut self) -> u8 {
+    // PPU_STATUS ($2002 < read)
+    fn peek_ppu_status(&self) -> u8 {
+        self.ppu_status.bits()
+    }
+
+    fn read_ppu_status(&mut self) -> u8 {
         let value = self.ppu_status.read();
         self.ppu_addr.reset_latch();
         self.ppu_scroll.reset_latch();
         value
     }
 
-    pub fn write_ppu_scroll(&mut self, value: u8) {
+    // OAM_ADDR ($2003 > write)
+    fn write_oam_addr(&mut self, value: u8) {
+        self.oam_addr.write(value);
+    }
+
+    // OAM_DATA ($2004 <> read/write)
+    fn peek_oam_data(&self) -> u8 {
+        self.oam[self.oam_addr.bits()]
+    }
+
+    fn read_oam_data(&mut self) -> u8 {
+        let oam_data = self.oam[self.oam_addr.bits()];
+        if !self.in_vblank() {
+            self.oam_addr.increment();
+        }
+        oam_data
+    }
+
+    fn write_oam_data(&mut self, value: u8) {
+        self.oam[self.oam_addr.bits()] = value;
+        self.oam_addr.increment();
+    }
+
+    // PPU_SCROLL ($2005 >> write x2)
+    fn write_ppu_scroll(&mut self, value: u8) {
         self.ppu_scroll.write(value);
     }
 
-    pub fn write_ppu_addr(&mut self, value: u8) {
+    // PPU_ADDR ($2006 >> write x2)
+    fn write_ppu_addr(&mut self, value: u8) {
         self.ppu_addr.write(value);
     }
 
-    pub fn write_ppu_data(&mut self, cartridge: &mut dyn Cartridge, value: u8) {
-        let address: u16 = self.ppu_addr.get();
-        let increment = self.ppu_ctrl.vram_address_increment();
-        self.ppu_addr.increment_address(increment);
-
+    // PPU_DATA ($2007 <> read/write)
+    fn peek_ppu_data(&self) -> u8 {
+        let address: u16 = self.ppu_addr.bits();
         match address {
-            0..=0x3EFF => cartridge.ppu_write(address, value),
-            0x3F00..=0x3FFF => self.palette_ram[address - 0x3F00] = value,
+            0..=0x3EFF => self.ppu_data_read_buffer,
+            0x3F00..=0x3FFF => self.palette_ram[address - 0x3F00],
             _ => unreachable!(),
         }
     }
 
-    pub fn read_ppu_data(&mut self, cartridge: &mut dyn Cartridge) -> u8 {
-        let address: u16 = self.ppu_addr.get();
+    fn read_ppu_data(&mut self, cartridge: &mut dyn Cartridge) -> u8 {
+        let address: u16 = self.ppu_addr.bits();
         let increment = self.ppu_ctrl.vram_address_increment();
-        self.ppu_addr.increment_address(increment);
+        self.ppu_addr.increment(increment);
 
         match address {
             0..=0x3EFF => {
@@ -207,28 +296,15 @@ impl PPU {
         }
     }
 
-    pub fn write_oam_addr(&mut self, value: u8) {
-        self.oam_addr.write(value);
-    }
+    fn write_ppu_data(&mut self, cartridge: &mut dyn Cartridge, value: u8) {
+        let address: u16 = self.ppu_addr.bits();
+        let increment = self.ppu_ctrl.vram_address_increment();
+        self.ppu_addr.increment(increment);
 
-    pub fn write_oam_data(&mut self, value: u8) {
-        self.oam[self.oam_addr.get() as u16] = value;
-        self.oam_addr.increment();
-    }
-
-    pub fn read_oam_data(&mut self) -> u8 {
-        let oam_data = self.oam[self.oam_addr.get() as u16];
-        if !self.in_vblank() {
-            self.oam_addr.increment();
+        match address {
+            0..=0x3EFF => cartridge.ppu_write(address, value),
+            0x3F00..=0x3FFF => self.palette_ram[address - 0x3F00] = value,
+            _ => unreachable!(),
         }
-        oam_data
-    }
-
-    pub fn write_oam_dma(&mut self, oam_data: &[u8; 256]) {
-        self.oam.copy_from_slice(oam_data)
-    }
-
-    pub fn in_vblank(&self) -> bool {
-        self.y >= PPU::VBLANK_START_SCANLINE
     }
 }

@@ -2,23 +2,32 @@ use crate::cpu::CPU;
 
 /// A 16-bit bus.
 pub trait Bus16 {
+    fn peek_byte(&self, address: u16) -> u8;
+
     fn read_byte(&mut self, address: u16) -> u8;
+
     fn write_byte(&mut self, address: u16, value: u8);
 
+    fn peek_word(&self, address: u16) -> u16 {
+        let lower_byte = self.peek_byte(address.wrapping_add(0));
+        let upper_byte = self.peek_byte(address.wrapping_add(1));
+        (upper_byte as u16) << 8 | lower_byte as u16
+    }
+
     fn read_word(&mut self, address: u16) -> u16 {
-        let low_byte = self.read_byte(address);
-        let high_byte = self.read_byte(address.wrapping_add(1));
-        (high_byte as u16) << 8 | low_byte as u16
+        let lower_byte = self.read_byte(address.wrapping_add(0));
+        let upper_byte = self.read_byte(address.wrapping_add(1));
+        (upper_byte as u16) << 8 | lower_byte as u16
     }
 
     fn write_word(&mut self, address: u16, value: u16) {
-        self.write_byte(address + 0, ((value & 0x00FF) >> 0) as u8);
-        self.write_byte(address + 1, ((value & 0xFF00) >> 8) as u8);
+        self.write_byte(address.wrapping_add(0), ((value & 0x00FF) >> 0) as u8);
+        self.write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
     }
 
     fn load_code(&mut self, code: &[u8], base_address: u16, reset_vector: Option<u16>) {
         for i in 0..code.len() {
-            self.write_byte(base_address + i as u16, code[i]);
+            self.write_byte(base_address.wrapping_add(i as u16), code[i]);
         }
 
         if let Some(reset_vector) = reset_vector {
@@ -43,6 +52,10 @@ impl FlatMemory {
 }
 
 impl Bus16 for FlatMemory {
+    fn peek_byte(&self, address: u16) -> u8 {
+        self.bytes[address as usize]
+    }
+
     fn read_byte(&mut self, address: u16) -> u8 {
         self.bytes[address as usize]
     }
