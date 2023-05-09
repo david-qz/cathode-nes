@@ -6,6 +6,7 @@ use crate::{
     memory::Ram,
     ppu::PPU,
 };
+use macros::{cpu_bus, frozen_cpu_bus};
 use mos_6502::{
     cpu::CPU,
     debugging::{Debugger, ExecutionState},
@@ -39,13 +40,7 @@ impl NES {
 
     pub fn insert_cartridge(&mut self, cartridge: Box<dyn Cartridge>) {
         self.cartridge = cartridge;
-        let mut bus = CpuBus {
-            ram: &mut self.ram,
-            ppu: &mut self.ppu,
-            port_a: &mut self.port_a,
-            port_b: &mut self.port_b,
-            cartridge: self.cartridge.as_mut(),
-        };
+        let mut bus = cpu_bus!(self);
         self.cpu.reset(&mut bus)
     }
 
@@ -58,13 +53,7 @@ impl NES {
     }
 
     pub fn current_state(&self) -> ExecutionState {
-        let bus = FrozenCpuBus {
-            ram: &self.ram,
-            ppu: &self.ppu,
-            port_a: &self.port_a,
-            port_b: &self.port_b,
-            cartridge: self.cartridge.as_ref(),
-        };
+        let bus = frozen_cpu_bus!(self);
         self.cpu.current_state(&bus)
     }
 
@@ -94,13 +83,7 @@ impl NES {
 
     pub fn tick(&mut self) {
         let cpu_cycles = {
-            let mut bus = CpuBus {
-                ram: &mut self.ram,
-                ppu: &mut self.ppu,
-                port_a: &mut self.port_a,
-                port_b: &mut self.port_b,
-                cartridge: self.cartridge.as_mut(),
-            };
+            let mut bus = cpu_bus!(self);
             self.cpu.execute_instruction(&mut bus)
         };
 
@@ -109,13 +92,7 @@ impl NES {
             .tick(self.cartridge.as_mut(), &mut self.frame, ppu_cycles);
 
         if self.ppu.take_interrupt() {
-            let mut bus = CpuBus {
-                ram: &mut self.ram,
-                ppu: &mut self.ppu,
-                port_a: &mut self.port_a,
-                port_b: &mut self.port_b,
-                cartridge: self.cartridge.as_mut(),
-            };
+            let mut bus = cpu_bus!(self);
             self.cpu.nmi(&mut bus);
         }
     }
@@ -139,4 +116,33 @@ impl NES {
     pub fn update_controller_port_b<S: ControllerState>(&mut self, state: &S) {
         self.port_b.update(state);
     }
+}
+
+mod macros {
+    macro_rules! cpu_bus {
+        ($nes:expr) => {
+            CpuBus {
+                ram: &mut $nes.ram,
+                ppu: &mut $nes.ppu,
+                port_a: &mut $nes.port_a,
+                port_b: &mut $nes.port_b,
+                cartridge: $nes.cartridge.as_mut(),
+            }
+        };
+    }
+
+    macro_rules! frozen_cpu_bus {
+        ($nes:expr) => {
+            FrozenCpuBus {
+                ram: &$nes.ram,
+                ppu: &$nes.ppu,
+                port_a: &$nes.port_a,
+                port_b: &$nes.port_b,
+                cartridge: $nes.cartridge.as_ref(),
+            }
+        };
+    }
+
+    pub(super) use cpu_bus;
+    pub(super) use frozen_cpu_bus;
 }
