@@ -2,6 +2,7 @@ use mos_6502::memory::Bus16;
 
 use crate::{
     cartridge::Cartridge,
+    input::ControllerPort,
     memory::Ram,
     ppu::{PpuRegister, PPU},
 };
@@ -10,6 +11,8 @@ enum MappedAddress {
     Ram(u16),
     Ppu(PpuRegister),
     OamDma,
+    ControllerPortA,
+    ControllerPortB,
     Cartridge(u16),
     Unimplemented,
 }
@@ -29,6 +32,8 @@ fn map_address(address: u16) -> MappedAddress {
             _ => unreachable!(),
         },
         0x4014 => MappedAddress::OamDma,
+        0x4016 => MappedAddress::ControllerPortA,
+        0x4017 => MappedAddress::ControllerPortB,
         0x4020.. => MappedAddress::Cartridge(address),
         _ => MappedAddress::Unimplemented, // TODO: More APU and I/O
     }
@@ -46,20 +51,12 @@ where
     page_data
 }
 
-pub struct CpuBus<'a> {
-    ram: &'a mut Ram<2048>,
-    ppu: &'a mut PPU,
-    cartridge: &'a mut dyn Cartridge,
-}
-
-impl<'a> CpuBus<'a> {
-    pub fn new(ram: &'a mut Ram<2048>, ppu: &'a mut PPU, cartridge: &'a mut dyn Cartridge) -> Self {
-        CpuBus {
-            ram,
-            ppu,
-            cartridge,
-        }
-    }
+pub(crate) struct CpuBus<'a> {
+    pub ram: &'a mut Ram<2048>,
+    pub ppu: &'a mut PPU,
+    pub port_a: &'a mut ControllerPort,
+    pub port_b: &'a mut ControllerPort,
+    pub cartridge: &'a mut dyn Cartridge,
 }
 
 impl<'a> Bus16 for CpuBus<'a> {
@@ -68,6 +65,8 @@ impl<'a> Bus16 for CpuBus<'a> {
             MappedAddress::Ram(address) => self.ram[address],
             MappedAddress::Ppu(register) => self.ppu.peek_register(register),
             MappedAddress::OamDma => 0, // Open bus
+            MappedAddress::ControllerPortA => self.port_a.peek(),
+            MappedAddress::ControllerPortB => self.port_b.peek(),
             MappedAddress::Cartridge(address) => self.cartridge.cpu_peek(address),
             MappedAddress::Unimplemented => 0,
         }
@@ -78,6 +77,8 @@ impl<'a> Bus16 for CpuBus<'a> {
             MappedAddress::Ram(address) => self.ram[address],
             MappedAddress::Ppu(register) => self.ppu.read_register(self.cartridge, register),
             MappedAddress::OamDma => 0, // Open bus
+            MappedAddress::ControllerPortA => self.port_a.read(),
+            MappedAddress::ControllerPortB => self.port_b.read(),
             MappedAddress::Cartridge(address) => self.cartridge.cpu_read(address),
             MappedAddress::Unimplemented => 0,
         }
@@ -93,26 +94,25 @@ impl<'a> Bus16 for CpuBus<'a> {
                 let page_data = read_page(self, value);
                 self.ppu.oam_dma(&page_data);
             }
+            MappedAddress::ControllerPortA => {
+                if value & 0x01 != 0 {
+                    self.port_a.poll();
+                    self.port_b.poll();
+                }
+            }
+            MappedAddress::ControllerPortB => (),
             MappedAddress::Cartridge(address) => self.cartridge.cpu_write(address, value),
             MappedAddress::Unimplemented => (),
         }
     }
 }
 
-pub struct FrozenCpuBus<'a> {
-    ram: &'a Ram<2048>,
-    ppu: &'a PPU,
-    cartridge: &'a dyn Cartridge,
-}
-
-impl<'a> FrozenCpuBus<'a> {
-    pub fn new(ram: &'a Ram<2048>, ppu: &'a PPU, cartridge: &'a dyn Cartridge) -> Self {
-        Self {
-            ram,
-            ppu,
-            cartridge,
-        }
-    }
+pub(crate) struct FrozenCpuBus<'a> {
+    pub ram: &'a Ram<2048>,
+    pub ppu: &'a PPU,
+    pub port_a: &'a ControllerPort,
+    pub port_b: &'a ControllerPort,
+    pub cartridge: &'a dyn Cartridge,
 }
 
 impl<'a> Bus16 for FrozenCpuBus<'a> {
@@ -121,22 +121,18 @@ impl<'a> Bus16 for FrozenCpuBus<'a> {
             MappedAddress::Ram(address) => self.ram[address],
             MappedAddress::Ppu(register) => self.ppu.peek_register(register),
             MappedAddress::OamDma => 0, // Open bus
+            MappedAddress::ControllerPortA => self.port_a.peek(),
+            MappedAddress::ControllerPortB => self.port_b.peek(),
             MappedAddress::Cartridge(address) => self.cartridge.cpu_peek(address),
             MappedAddress::Unimplemented => 0,
         }
     }
 
-    fn read_byte(&mut self, address: u16) -> u8 {
-        match map_address(address) {
-            MappedAddress::Ram(address) => self.ram[address],
-            MappedAddress::Ppu(register) => self.ppu.peek_register(register),
-            MappedAddress::OamDma => 0, // Open bus
-            MappedAddress::Cartridge(address) => self.cartridge.cpu_peek(address),
-            MappedAddress::Unimplemented => 0,
-        }
+    fn read_byte(&mut self, _address: u16) -> u8 {
+        panic!("Attempt to read from frozen bus.");
     }
 
     fn write_byte(&mut self, _address: u16, _value: u8) {
-        ()
+        panic!("Attempt to write to frozen bus.");
     }
 }

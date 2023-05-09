@@ -2,6 +2,7 @@ extern crate sdl2;
 
 use nes::cartridge::Cartridge;
 use nes::frame::Frame;
+use nes::input::StandardController;
 use nes::nes::NES;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -27,6 +28,8 @@ pub fn main() -> Result<(), Box<dyn error::Error>> {
     let mut nes = NES::new();
     nes.insert_cartridge(cartridge);
 
+    let mut controller: StandardController = Default::default();
+
     let sdl_ctx = sdl2::init()?;
 
     let mut canvas = {
@@ -51,6 +54,16 @@ pub fn main() -> Result<(), Box<dyn error::Error>> {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    repeat: false,
+                    ..
+                } => update_controller(&mut controller, keycode, true),
+                Event::KeyUp {
+                    keycode: Some(keycode),
+                    repeat: false,
+                    ..
+                } => update_controller(&mut controller, keycode, false),
                 _ => {}
             }
         }
@@ -59,6 +72,7 @@ pub fn main() -> Result<(), Box<dyn error::Error>> {
             let start = Instant::now();
 
             nes.advance_to_next_frame();
+            nes.update_controller_port_a(&controller);
             let frame = nes.borrow_frame();
 
             copy_frame_to_texture(&mut texture, frame)?;
@@ -100,4 +114,18 @@ fn create_texture(creator: &TextureCreator<WindowContext>) -> Result<Texture, Te
 fn copy_frame_to_texture(texture: &mut Texture, frame: &Frame) -> Result<(), UpdateTextureError> {
     let pitch = Frame::WIDTH * Frame::BYTES_PER_PIXEL;
     texture.update(None, frame.data_rgb8(), pitch)
+}
+
+fn update_controller(controller: &mut StandardController, keycode: Keycode, pressed: bool) {
+    match keycode {
+        Keycode::Up => controller.up = pressed,
+        Keycode::Down => controller.down = pressed,
+        Keycode::Left => controller.left = pressed,
+        Keycode::Right => controller.right = pressed,
+        Keycode::Q => controller.select = pressed,
+        Keycode::W => controller.start = pressed,
+        Keycode::A => controller.a = pressed,
+        Keycode::S => controller.b = pressed,
+        _ => {}
+    }
 }

@@ -2,6 +2,7 @@ use crate::{
     cartridge::Cartridge,
     cpu_bus::{CpuBus, FrozenCpuBus},
     frame::Frame,
+    input::{ControllerPort, ControllerState},
     memory::Ram,
     ppu::PPU,
 };
@@ -15,6 +16,8 @@ pub struct NES {
     cpu: CPU,
     ram: Ram<2048>,
     ppu: PPU,
+    port_a: ControllerPort,
+    port_b: ControllerPort,
     cartridge: Box<dyn Cartridge>,
     frame: Frame,
     debugger: Option<Rc<RefCell<Debugger>>>,
@@ -27,6 +30,8 @@ impl NES {
             ram: Ram::<2048>::new(),
             ppu: PPU::new(),
             cartridge: Default::default(),
+            port_a: Default::default(),
+            port_b: Default::default(),
             frame: Frame::new(),
             debugger: None,
         }
@@ -34,7 +39,13 @@ impl NES {
 
     pub fn insert_cartridge(&mut self, cartridge: Box<dyn Cartridge>) {
         self.cartridge = cartridge;
-        let mut bus = CpuBus::new(&mut self.ram, &mut self.ppu, self.cartridge.as_mut());
+        let mut bus = CpuBus {
+            ram: &mut self.ram,
+            ppu: &mut self.ppu,
+            port_a: &mut self.port_a,
+            port_b: &mut self.port_b,
+            cartridge: self.cartridge.as_mut(),
+        };
         self.cpu.reset(&mut bus)
     }
 
@@ -47,7 +58,13 @@ impl NES {
     }
 
     pub fn current_state(&self) -> ExecutionState {
-        let bus = FrozenCpuBus::new(&self.ram, &self.ppu, self.cartridge.as_ref());
+        let bus = FrozenCpuBus {
+            ram: &self.ram,
+            ppu: &self.ppu,
+            port_a: &self.port_a,
+            port_b: &self.port_b,
+            cartridge: self.cartridge.as_ref(),
+        };
         self.cpu.current_state(&bus)
     }
 
@@ -77,7 +94,13 @@ impl NES {
 
     pub fn tick(&mut self) {
         let cpu_cycles = {
-            let mut bus = CpuBus::new(&mut self.ram, &mut self.ppu, self.cartridge.as_mut());
+            let mut bus = CpuBus {
+                ram: &mut self.ram,
+                ppu: &mut self.ppu,
+                port_a: &mut self.port_a,
+                port_b: &mut self.port_b,
+                cartridge: self.cartridge.as_mut(),
+            };
             self.cpu.execute_instruction(&mut bus)
         };
 
@@ -86,7 +109,13 @@ impl NES {
             .tick(self.cartridge.as_mut(), &mut self.frame, ppu_cycles);
 
         if self.ppu.take_interrupt() {
-            let mut bus = CpuBus::new(&mut self.ram, &mut self.ppu, self.cartridge.as_mut());
+            let mut bus = CpuBus {
+                ram: &mut self.ram,
+                ppu: &mut self.ppu,
+                port_a: &mut self.port_a,
+                port_b: &mut self.port_b,
+                cartridge: self.cartridge.as_mut(),
+            };
             self.cpu.nmi(&mut bus);
         }
     }
@@ -101,5 +130,13 @@ impl NES {
             }
             last_in_vblank = in_vblank;
         }
+    }
+
+    pub fn update_controller_port_a<S: ControllerState>(&mut self, state: &S) {
+        self.port_a.update(state);
+    }
+
+    pub fn update_controller_port_b<S: ControllerState>(&mut self, state: &S) {
+        self.port_b.update(state);
     }
 }
