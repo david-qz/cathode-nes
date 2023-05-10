@@ -91,10 +91,7 @@ impl NES {
         self.ppu
             .tick(self.cartridge.as_mut(), &mut self.frame, ppu_cycles);
 
-        if self.ppu.take_interrupt() {
-            let mut bus = cpu_bus!(self);
-            self.cpu.nmi(&mut bus);
-        }
+        self.cpu.nmi = self.ppu.interrupt;
     }
 
     pub fn advance_to_next_frame(&mut self) {

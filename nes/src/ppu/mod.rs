@@ -38,7 +38,7 @@ pub struct PPU {
     x: u16,
     y: u16,
     current_background_slice: BackgroundSlice,
-    nmi_interrupt: bool,
+    pub interrupt: bool,
 }
 
 impl PPU {
@@ -64,7 +64,7 @@ impl PPU {
             y: 0,
             x: 0,
             current_background_slice: BackgroundSlice::new(0, 0, 0),
-            nmi_interrupt: false,
+            interrupt: false,
         }
     }
 
@@ -120,7 +120,7 @@ impl PPU {
 
             if self.y == PPU::NMI_SCANLINE {
                 if self.ppu_ctrl.nmi_enabled() {
-                    self.nmi_interrupt = true;
+                    self.interrupt = true;
                 }
                 self.ppu_status.set_vblank_started(true);
                 self.ppu_status.set_sprite_zero_hit(false);
@@ -128,7 +128,7 @@ impl PPU {
 
             if self.y >= PPU::TOTAL_SCANLINES {
                 self.y = 0;
-                self.nmi_interrupt = false;
+                self.interrupt = false;
                 self.ppu_status.set_vblank_started(false);
                 self.ppu_status.set_sprite_zero_hit(false);
             }
@@ -162,10 +162,6 @@ impl PPU {
 
     pub fn in_vblank(&self) -> bool {
         self.y >= PPU::VBLANK_START_SCANLINE
-    }
-
-    pub fn take_interrupt(&mut self) -> bool {
-        std::mem::take(&mut self.nmi_interrupt)
     }
 
     pub fn oam_dma(&mut self, oam_data: &[u8; 256]) {

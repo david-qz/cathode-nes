@@ -20,6 +20,10 @@ pub struct CPU {
     pub overflow: bool,
     pub negative: bool,
 
+    pub nmi: bool,
+    last_nmi: bool,
+    pub irq: bool,
+
     pub total_cycles: u64,
     pub jammed: bool,
     debugger: Option<Rc<RefCell<Debugger>>>,
@@ -45,6 +49,9 @@ impl CPU {
             decimal_mode: false,
             overflow: false,
             negative: false,
+            nmi: false,
+            last_nmi: false,
+            irq: false,
             total_cycles: 0,
             jammed: false,
             debugger: None,
@@ -74,14 +81,6 @@ impl CPU {
         self.total_cycles += 7;
     }
 
-    pub fn nmi(&mut self, bus: &mut dyn Bus16) {
-        self.push_word(bus, self.pc);
-        self.push_byte(bus, self.encode_p(false));
-        self.irq_disable = true;
-        self.pc = bus.read_word(Self::NMI_VECTOR);
-        self.total_cycles += 7;
-    }
-
     pub fn execute_instruction(&mut self, bus: &mut dyn Bus16) -> u64 {
         if self.jammed {
             return 1;
@@ -92,6 +91,15 @@ impl CPU {
         }
 
         let cycles_at_start = self.total_cycles;
+
+        if self.nmi && !self.last_nmi {
+            self.nmi(bus);
+        }
+        self.last_nmi = self.nmi;
+
+        if self.irq && !self.irq_disable {
+            self.irq(bus);
+        }
 
         let opcode = bus.read_byte(self.pc);
         match opcode {
@@ -924,6 +932,22 @@ impl CPU {
         };
 
         self.total_cycles - cycles_at_start
+    }
+
+    fn nmi(&mut self, bus: &mut dyn Bus16) {
+        self.push_word(bus, self.pc);
+        self.push_byte(bus, self.encode_p(false));
+        self.irq_disable = true;
+        self.pc = bus.read_word(Self::NMI_VECTOR);
+        self.total_cycles += 7;
+    }
+
+    fn irq(&mut self, bus: &mut dyn Bus16) {
+        self.push_word(bus, self.pc);
+        self.push_byte(bus, self.encode_p(false));
+        self.irq_disable = true;
+        self.pc = bus.read_word(Self::IRQ_VECTOR);
+        self.total_cycles += 7;
     }
 
     #[inline(always)]
