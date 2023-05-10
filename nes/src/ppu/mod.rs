@@ -75,10 +75,6 @@ impl PPU {
     }
 
     fn cycle(&mut self, cartridge: &mut dyn Cartridge, frame: &mut Frame) {
-        if self.x == 0 && self.y == 0 {
-            frame.clear_with((255, 0, 255));
-        }
-
         if self.x >= 257 && self.x <= 320 {
             self.oam_addr.reset_latch();
         }
@@ -110,6 +106,10 @@ impl PPU {
                     frame.write(self.x as usize, self.y as usize, (0, 0, 255));
                     break;
                 }
+            }
+
+            if !self.ppu_mask.rendering_enabled() {
+                frame.write(self.x as usize, self.y as usize, (0, 0, 0));
             }
         }
 
