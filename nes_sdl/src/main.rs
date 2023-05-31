@@ -94,7 +94,7 @@ fn create_window(video_subsystem: &VideoSubsystem) -> Result<Window, WindowBuild
     let height = 2 * Frame::HEIGHT as u32;
 
     video_subsystem
-        .window("untitled_emulator", width, height)
+        .window("cathode", width, height)
         .position_centered()
         .build()
 }
