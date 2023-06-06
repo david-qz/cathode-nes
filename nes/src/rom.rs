@@ -3,6 +3,7 @@ const INES_TRAINER_LENGTH: usize = 512;
 const INES_PRG_ROM_UNITS: usize = 16384;
 const INES_CHR_ROM_UNITS: usize = 8192;
 
+#[derive(Copy, Clone)]
 pub struct INesHeader {
     bytes: [u8; INES_HEADER_LENGTH],
 }
@@ -14,11 +15,11 @@ impl INesHeader {
         }
     }
 
-    fn prg_rom_size(&self) -> usize {
+    pub fn prg_rom_size(&self) -> usize {
         self.bytes[4] as usize * INES_PRG_ROM_UNITS
     }
 
-    fn chr_rom_size(&self) -> usize {
+    pub fn chr_rom_size(&self) -> usize {
         self.bytes[5] as usize * INES_CHR_ROM_UNITS
     }
 
@@ -36,7 +37,7 @@ impl INesHeader {
         self.bytes[6] & (1 << 1) != 0
     }
 
-    fn has_trainer(&self) -> bool {
+    pub fn has_trainer(&self) -> bool {
         self.bytes[6] & (1 << 2) != 0
     }
 
@@ -54,7 +55,7 @@ impl INesHeader {
         }
     }
 
-    fn is_ines_2_header(&self) -> bool {
+    pub fn is_ines_2_header(&self) -> bool {
         self.bytes[7] & 0x0C == 8
     }
 }
